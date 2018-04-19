@@ -388,6 +388,8 @@ def trace_objbg_image(slf, det, sciframe, slitn, objreg, bgreg, trim=2, triml=No
     rec_bg_img = np.zeros((sciframe.shape[0], sciframe.shape[1], nobj))
     for o in range(nobj):
         wll = np.where(bgreg[0][1:, o] > bgreg[0][:-1, o])[0]
+        if len(wll) == 0: # JXP kludge
+            wll = np.array([0]).astype(int)
         wlr = np.where(bgreg[0][1:, o] < bgreg[0][:-1, o])[0]
         # Background regions to the left of object
         for ii in range(wll.size):
@@ -397,6 +399,8 @@ def trace_objbg_image(slf, det, sciframe, slitn, objreg, bgreg, trim=2, triml=No
                                    np.clip(spatdir - robj.reshape(sciframe.shape[0], 1), 0.0, 1.0)
         wrl = np.where(bgreg[1][1:, o] > bgreg[1][:-1, o])[0]
         wrr = np.where(bgreg[1][1:, o] < bgreg[1][:-1, o])[0]
+        if len(wrr) == 0: # JXP kludge
+            wrr = np.array([len(bgreg[1][1:,o])-1]).astype(int)
         # Background regions to the right of object
         for ii in range(wrl.size):
             lobj = slf._lordloc[det - 1][:, slitn] + triml + wrl[ii]
@@ -452,7 +456,7 @@ def trace_object_dict(nobj, traces, object=None, background=None, params=None, t
 
 def trace_object(slf, det, sciframe, varframe, crmask, trim=2,
                  triml=None, trimr=None, sigmin=2.0, bgreg=None,
-                 maskval=-999999.9, slitn=0, doqa=True,
+                 maskval=-999999.9, slitn=0, doqa=True, box_smooth=True,
                  xedge=0.03, tracedict=None, standard=False, debug=False):
     """ Finds objects, and traces their location on the detector
 
@@ -550,7 +554,10 @@ def trace_object(slf, det, sciframe, varframe, crmask, trim=2,
     tmp = np.ma.MaskedArray(rec_sciframe/np.sqrt(rec_varframe), mask=rec_crmask.astype(bool))
 #    # TODO: Add rejection to BoxcarFilter?
 #    t = time.clock()
-    rec_sigframe_bin = BoxcarFilter(smthby).smooth(tmp.T).T
+    if box_smooth:
+        rec_sigframe_bin = BoxcarFilter(smthby).smooth(tmp.T).T
+    else:
+        rec_sigframe_bin = tmp
 #    print('BoxcarFilter: {0} seconds'.format(time.clock() - t))
 #    t = time.clock()
 #    rec_sigframe_bin = new_smooth_x(rec_sciframe/np.sqrt(rec_varframe), 1.0-rec_crmask, smthby,
@@ -592,6 +599,7 @@ def trace_object(slf, det, sciframe, varframe, crmask, trim=2,
     #sigframe = rec_sciframe_bin*(1.0-rec_crmask)/rec_sigframe_bin
     ww = np.where(rec_crmask == 0.0)
     med, mad = arutils.robust_meanstd(rec_sigframe_bin[ww])
+    svmed = med
     ww = np.where(rec_crmask == 1.0)
     rec_sigframe_bin[ww] = maskval
     srtsig = np.sort(rec_sigframe_bin,axis=1)
@@ -622,15 +630,17 @@ def trace_object(slf, det, sciframe, varframe, crmask, trim=2,
     #objl, objr, bckl, bckr = arcytrace.find_objects(smth_prof, bgreg, mad)
     if settings.argflag['trace']['object']['find'] == 'nminima':
         nsmooth = settings.argflag['trace']['object']['nsmooth']
-        trcprof2 = np.mean(rec_sciframe, axis=0)
+        mask_sciframe = np.ma.array(rec_sciframe, mask=rec_crmask, fill_value=maskval)
+        clip_image2 = sigma_clip(mask_sciframe[ww[0], :], axis=0, sigma=4.)
+        trcprof2 = np.ma.mean(clip_image2, axis=0).filled(0.0)
         objl, objr, bckl, bckr = find_obj_minima(trcprof2, triml=triml, trimr=trimr, nsmooth=nsmooth)
+        #objl, objr, bckl, bckr = find_obj_minima(trcprof, triml=triml, trimr=trimr, nsmooth=nsmooth)
     elif settings.argflag['trace']['object']['find'] == 'standard':
 #        print('calling find_objects')
 #        t = time.clock()
 #        _objl, _objr, _bckl, _bckr = arcytrace.find_objects(trcprof, bgreg, mad)
 #        print('Old find_objects: {0} seconds'.format(time.clock() - t))
 #        t = time.clock()
-        objl, objr, bckl, bckr = new_find_objects(trcprof, bgreg, mad)
 #        print('New find_objects: {0} seconds'.format(time.clock() - t))
 #        print('objl:', objl)
 #        print('_objl:', _objl)
@@ -645,7 +655,10 @@ def trace_object(slf, det, sciframe, varframe, crmask, trim=2,
 #        assert np.sum(_bckl != bckl) == 0, 'Difference between old and new find_objects, bckl'
 #        assert np.sum(_bckr != bckr) == 0, 'Difference between old and new find_objects, bckr'
 #        objl, objr, bckl, bckr = new_find_objects(trcprof, bgreg, mad)
-
+        objl, objr, bckl, bckr = new_find_objects(trcprof, bgreg, mad)
+    elif settings.argflag['trace']['object']['find'] == 'skysub':
+        trcprof3 = np.ma.mean(clip_image, axis=0).filled(0.0)
+        objl, objr, bckl, bckr = new_find_objects(trcprof3, bgreg, max(svmed,0.05))
     else:
         msgs.error("Bad object identification algorithm!!")
     if msgs._debug['trace_obj']:
@@ -720,6 +733,7 @@ def trace_object(slf, det, sciframe, varframe, crmask, trim=2,
             allsfit = np.append(allsfit, centfit[w]-cval[o])
     if nobj == 0:
         msgs.warn("No objects detected in slit")
+        debugger.set_trace()
         return trace_object_dict(0, None)
     # Tracing
     msgs.info("Performing global trace to all objects")
@@ -1072,12 +1086,15 @@ def new_find_objects(profile, bgreg, stddev):
     while np.any(gt_5_sigma & np.invert(_profile.mask)):
         # Find next maximum flux point
         imax = np.ma.argmax(_profile)
+        if not gt_5_sigma[imax]:
+            break
+        _profile[imax] = np.ma.masked # Mask the peak
         # Find the valid source pixels around the peak
         f = np.arange(sz_x)[np.roll(not_gt_3_sigma, -imax)]
         # TODO: the ifs below feel like kludges to match old
         # find_objects function.  In particular, should objr be treated
         # as exclusive or inclusive?
-        objl[obj] = imax-sz_x+f[-1] if imax-sz_x+f[-1] > 0 else 1
+        objl[obj] = imax-sz_x+f[-1] if imax-sz_x+f[-1] > 0 else 0
         objr[obj] = f[0]+imax if f[0]+imax < sz_x else sz_x-1
 #        print('object found: ', imax, f[-1], objl[obj], f[0], objr[obj], sz_x)
         # Mask source pixels and increment for next iteration
@@ -1085,6 +1102,8 @@ def new_find_objects(profile, bgreg, stddev):
         _profile[objl[obj]:objr[obj]+1] = np.ma.masked
         obj += 1
 
+    msgs.info("objl: {}".format(objl[:obj]))
+    msgs.info("objr: {}".format(objr[:obj]))
     # The background is the region away from sources up to the provided
     # region size.  Starting pixel for the left limit...
     s = objl[:obj]-bgreg
