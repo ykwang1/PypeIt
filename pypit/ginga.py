@@ -85,10 +85,10 @@ def show_image(inp, chname='Image', wcs_img=None, **kwargs):
     name='image'
     # Header
     header = {}
-    header['NAXIS1'] = img.shape[1]
-    header['NAXIS2'] = img.shape[0]
+    header['NAXIS1'] = int(img.shape[1])
+    header['NAXIS2'] = int(img.shape[0])
     if wcs_img is not None:
-        header['WCS-XIMG'] = wcs_img
+        header['WCS-XIMG'] = str(wcs_img)
         #header['WCS-XIMG'] = '/home/xavier/REDUX/Keck/LRIS/2017mar20/lris_red_setup_C/MF_lris_red/MasterWave_C_02_aa.fits'
     # Giddy up
     ch.load_np(name, img, 'fits', header)
