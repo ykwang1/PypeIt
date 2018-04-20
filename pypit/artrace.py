@@ -388,19 +388,22 @@ def trace_objbg_image(slf, det, sciframe, slitn, objreg, bgreg, trim=2, triml=No
     rec_bg_img = np.zeros((sciframe.shape[0], sciframe.shape[1], nobj))
     for o in range(nobj):
         wll = np.where(bgreg[0][1:, o] > bgreg[0][:-1, o])[0]
-        if len(wll) == 0: # JXP kludge
-            wll = np.array([0]).astype(int)
         wlr = np.where(bgreg[0][1:, o] < bgreg[0][:-1, o])[0]
+        if len(wll) < len(wlr): #< len(wlr): # JXP kludge
+            wll = np.concatenate([np.array([0]).astype(int), wll])
         # Background regions to the left of object
         for ii in range(wll.size):
             lobj = slf._lordloc[det - 1][:, slitn] + triml + wll[ii]
-            robj = slf._lordloc[det - 1][:, slitn] + trimr + wlr[ii]
+            try:
+                robj = slf._lordloc[det - 1][:, slitn] + trimr + wlr[ii]
+            except:
+                debugger.set_trace()
             rec_bg_img[:, :, o] += np.clip(spatdir - lobj.reshape(sciframe.shape[0], 1), 0.0, 1.0) - \
                                    np.clip(spatdir - robj.reshape(sciframe.shape[0], 1), 0.0, 1.0)
         wrl = np.where(bgreg[1][1:, o] > bgreg[1][:-1, o])[0]
         wrr = np.where(bgreg[1][1:, o] < bgreg[1][:-1, o])[0]
-        if len(wrr) == 0: # JXP kludge
-            wrr = np.array([len(bgreg[1][1:,o])-1]).astype(int)
+        if len(wrr) < len(wrl): # JXP kludge
+            wrr = np.concatenate([wrr, np.array([len(bgreg[1][1:,o])-1]).astype(int)])
         # Background regions to the right of object
         for ii in range(wrl.size):
             lobj = slf._lordloc[det - 1][:, slitn] + triml + wrl[ii]
@@ -733,7 +736,6 @@ def trace_object(slf, det, sciframe, varframe, crmask, trim=2,
             allsfit = np.append(allsfit, centfit[w]-cval[o])
     if nobj == 0:
         msgs.warn("No objects detected in slit")
-        debugger.set_trace()
         return trace_object_dict(0, None)
     # Tracing
     msgs.info("Performing global trace to all objects")
@@ -1102,8 +1104,6 @@ def new_find_objects(profile, bgreg, stddev):
         _profile[objl[obj]:objr[obj]+1] = np.ma.masked
         obj += 1
 
-    msgs.info("objl: {}".format(objl[:obj]))
-    msgs.info("objr: {}".format(objr[:obj]))
     # The background is the region away from sources up to the provided
     # region size.  Starting pixel for the left limit...
     s = objl[:obj]-bgreg
