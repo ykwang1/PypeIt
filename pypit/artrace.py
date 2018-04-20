@@ -392,7 +392,7 @@ def trace_objbg_image(slf, det, sciframe, slitn, objreg, bgreg, trim=2, triml=No
         if len(wll) < len(wlr): #< len(wlr): # JXP kludge
             wll = np.concatenate([np.array([0]).astype(int), wll])
         # Background regions to the left of object
-        for ii in range(wll.size):
+        for ii in range(wlr.size):
             lobj = slf._lordloc[det - 1][:, slitn] + triml + wll[ii]
             try:
                 robj = slf._lordloc[det - 1][:, slitn] + trimr + wlr[ii]
