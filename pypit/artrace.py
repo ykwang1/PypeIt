@@ -565,7 +565,7 @@ def trace_objects_in_slits(slf, det, sciframe, varframe, crmask, doqa=False, **k
 
 def trace_objects_in_slit(slf, det, slitn, sciframe, varframe, crmask, trim=2,
                  triml=None, trimr=None, sigmin=2.0, bgreg=None,
-                 maskval=-999999.9, slitn=0, doqa=True, box_smooth=True,
+                 maskval=-999999.9, doqa=True, box_smooth=True,
                  xedge=0.03, tracedict=None, standard=False, debug=False):
     """ Finds objects, and traces their location on the detector
 
