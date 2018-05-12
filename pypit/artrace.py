@@ -796,6 +796,10 @@ def trace_objects_in_slit(slf, det, slitn, sciframe, varframe, crmask, trim=2,
             width_spatial_manual = settings.argflag['science']['extraction']['manual01']['params'][3][0]
             objl = np.array([int(cent_spatial_manual - slf._lordloc[det - 1][cent_spatial_manual]) - width_spatial_manual])
             objr = np.array([int(cent_spatial_manual - slf._lordloc[det - 1][cent_spatial_manual]) + width_spatial_manual])
+            # Insist the edges are on the image
+            objl = np.maximum(objl, 0)
+            objr = np.minimum(objr, mask_sigframe.shape[1])
+            #
             bckl = np.zeros((trcprof.shape[0], objl.shape[0]))
             bckr = np.zeros((trcprof.shape[0], objl.shape[0]))
 
@@ -826,7 +830,10 @@ def trace_objects_in_slit(slf, det, slitn, sciframe, varframe, crmask, trim=2,
         xfit = np.arange(objl[o], objr[o]).reshape((1, -1))/(npix-1.0)
         #cent = np.ma.sum(mask_sigframe[:,objl[o]:objr[o]]*xfit, axis=1)
         #wght = np.ma.sum(mask_sigframe[:,objl[o]:objr[o]], axis=1)
-        cent = np.ma.sum(clip_image2[:, objl[o]:objr[o]]*xfit, axis=1)
+        try:
+            cent = np.ma.sum(clip_image2[:, objl[o]:objr[o]]*xfit, axis=1)
+        except:
+            debugger.set_trace()
         wght = np.ma.sum(clip_image2[:, objl[o]:objr[o]], axis=1)
         cent /= wght
         centfit = cent.filled(maskval)
