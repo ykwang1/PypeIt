@@ -253,13 +253,30 @@ def save_obj_info(all_specobjs, spectrograph, outfile, binning='None'):
         else:
             boxsize.append(0.)
 
+        # TODO: THERE ARE KLUDGES BELOW TO KEEP THE CODE FROM FAILING IF
+        # COMPONENTS OF specobj WERE NOT DEFINED!!
+
         # Optimal profile (FWHM)
-        opt_fwhm.append(np.median(specobj.fwhmfit)* binspatial*spectrograph.detector[specobj.det-1]['platescale'])
+        opt_fwhm.append(-1 if specobj.fwhmfit is None else 
+                        np.median(specobj.fwhmfit) * binspatial 
+                        * spectrograph.detector[specobj.det-1]['platescale'])
+
         # S2N -- default to boxcar
         #sext = (specobj.boxcar if (len(specobj.boxcar) > 0) else specobj.optimal)
-        ivar = specobj.optimal['COUNTS_IVAR']
-        is2n = np.median(specobj.optimal['COUNTS']*np.sqrt(ivar))
-        s2n.append(is2n)
+        if numpy.all([k in specobj.optimal.keys() for k in ['COUNTS', 'COUNTS_IVAR']]):
+            ivar = specobj.optimal['COUNTS_IVAR']
+            is2n = np.median(specobj.optimal['COUNTS']*np.sqrt(ivar))
+            s2n.append(is2n)
+        else:
+            s2n.append(-1)
+
+#        # Optimal profile (FWHM)
+#        opt_fwhm.append(np.median(specobj.fwhmfit)* binspatial*spectrograph.detector[specobj.det-1]['platescale'])
+#        # S2N -- default to boxcar
+#        #sext = (specobj.boxcar if (len(specobj.boxcar) > 0) else specobj.optimal)
+#        ivar = specobj.optimal['COUNTS_IVAR']
+#        is2n = np.median(specobj.optimal['COUNTS']*np.sqrt(ivar))
+#        s2n.append(is2n)
 
     # Generate the table, if we have at least one source
     if len(names) > 0:
