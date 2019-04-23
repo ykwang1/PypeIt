@@ -6,7 +6,7 @@ import glob, copy
 import yaml
 from pkg_resources import resource_filename
 
-from arclines.io import load_line_list
+# from arclines.io import load_line_list
 
 from pypit import msgs
 from pypit import arparse as settings
