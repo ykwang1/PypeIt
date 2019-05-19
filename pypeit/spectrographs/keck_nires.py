@@ -160,7 +160,9 @@ class KeckNIRESSpectrograph(spectrograph.Spectrograph):
             return np.zeros(len(fitstbl), dtype=bool)
         if ftype in ['pixelflat', 'trace']:
             return fitstbl['idname'] == 'domeflat'
-        
+        if ftype in ['science','arc']:
+            return fitstbl['idname'] == 'Object'
+
         return (fitstbl['idname'] == 'object') \
                         & framematch.check_frame_exptime(fitstbl['exptime'], exprng)
 
