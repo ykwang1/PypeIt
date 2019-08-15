@@ -426,7 +426,8 @@ def median_filt_spec(flux, ivar, mask, med_width):
 
 def solve_poly_ratio(wave, flux, ivar, flux_ref, ivar_ref, norder, mask = None, mask_ref = None,
                      scale_min = 0.05, scale_max = 100.0, func='legendre', model ='square',
-                     maxiter=3, sticky=True, lower=3.0, upper=3.0, median_frac=0.01, debug=False):
+                     maxiter=3, sticky=True, lower=3.0, upper=3.0, median_frac=0.01,
+                     ref_percentile=20, debug=False):
     '''
     Routine for solving for the polynomial rescaling of an input spectrum flux to match a reference spectrum flux_ref.
     The two spectra need to be defined on the same wavelength grid. The code will work best if you choose the reference
@@ -496,7 +497,8 @@ def solve_poly_ratio(wave, flux, ivar, flux_ref, ivar_ref, norder, mask = None, 
     #
     nspec = wave.size
     # Determine an initial guess
-    ratio = robust_median_ratio(flux, ivar, flux_ref, ivar_ref, mask=mask, mask_ref=mask_ref)
+    ratio = robust_median_ratio(flux, ivar, flux_ref, ivar_ref, mask=mask, mask_ref=mask_ref,
+                                ref_percentile=ref_percentile)
     if 'poly' in model:
         guess = np.append(ratio, np.zeros(norder-1))
     elif 'square' in model:
@@ -1125,7 +1127,8 @@ def scale_spec(wave, flux, ivar, sn, wave_ref, flux_ref, ivar_ref, mask=None, ma
             else:
                 npoly = 1
         scale, fit_tuple, flux_scale, ivar_scale, outmask = solve_poly_ratio(
-            wave, flux, ivar, flux_ref_int, ivar_ref_int, npoly,mask=mask, mask_ref=mask_ref_int, debug=debug)
+            wave, flux, ivar, flux_ref_int, ivar_ref_int, npoly,mask=mask, mask_ref=mask_ref_int,
+            ref_percentile=ref_percentile, debug=debug)
     elif scale_method == 'median':
         # Median ratio (reference to spectrum)
         med_scale = robust_median_ratio(flux, ivar, flux_ref_int, ivar_ref_int,ref_percentile=ref_percentile,min_good=min_good,
