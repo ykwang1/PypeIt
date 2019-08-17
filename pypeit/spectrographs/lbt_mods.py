@@ -199,7 +199,7 @@ class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
         return par
 
 
-    def bpm(self, shape=None, filename=None, det=None, **null_kwargs):
+    def bpm(self, filename, det, shape=None):
         """ Generate a BPM
 
         Parameters
@@ -213,8 +213,9 @@ class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
         badpix : ndarray
 
         """
+
         # Get the empty bpm: force is always True
-        self.empty_bpm(shape=shape, filename=filename, det=det)
+        bpm_img = self.empty_bpm(shape=shape, filename=filename, det=det)
 
         msgs.info("Using hard-coded BPM for  MODS1R")
 
@@ -226,17 +227,17 @@ class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
         hdu.close()
 
         # Apply the mask
-        self.bpm_img[6278//xbin:6289//xbin, 1544//ybin:1634//ybin] = 1
-        self.bpm_img[4202//xbin:4204//xbin, 1474//ybin:1544//ybin] = 1
-        self.bpm_img[3551//xbin:3558//xbin, 2391//ybin:2903//ybin] = 1
-        self.bpm_img[3553//xbin:3558//xbin, 1454//ybin:1544//ybin] = 1
+        bpm_img[6278//xbin:6289//xbin, 1544//ybin:1634//ybin] = 1
+        bpm_img[4202//xbin:4204//xbin, 1474//ybin:1544//ybin] = 1
+        bpm_img[3551//xbin:3558//xbin, 2391//ybin:2903//ybin] = 1
+        bpm_img[3553//xbin:3558//xbin, 1454//ybin:1544//ybin] = 1
 
-        self.bpm_img[5650//xbin, 1280//ybin:1544//ybin] = 1
-        self.bpm_img[4780//xbin, 1406//ybin:1536//ybin] = 1
-        self.bpm_img[3554//xbin, 1544//ybin:2392//ybin] = 1
-        self.bpm_img[163//xbin, 1544//ybin:1963//ybin] = 1
+        bpm_img[5650//xbin, 1280//ybin:1544//ybin] = 1
+        bpm_img[4780//xbin, 1406//ybin:1536//ybin] = 1
+        bpm_img[3554//xbin, 1544//ybin:2392//ybin] = 1
+        bpm_img[163//xbin, 1544//ybin:1963//ybin] = 1
 
-        return self.bpm_img
+        return bpm_img
 
 
 #    def check_headers(self, headers):
@@ -319,7 +320,7 @@ class LBTMODS1BSpectrograph(LBTMODSSpectrograph):
 
         return par
 
-    def bpm(self, shape=None, filename=None, det=None, **null_kwargs):
+    def bpm(self, filename, det, shape=None):
         """ Generate a BPM
 
         Parameters
@@ -336,7 +337,7 @@ class LBTMODS1BSpectrograph(LBTMODSSpectrograph):
         # ToDo: check whether MODS1B has the same flip direction with MODS1R
         #       and modify the BPM accordingly
         # Get the empty bpm: force is always True
-        self.empty_bpm(shape=shape, filename=filename, det=det)
+        bpm_img = self.empty_bpm(shape=shape, filename=filename, det=det)
 
         msgs.info("Using hard-coded BPM for  MODS1B")
 
@@ -347,13 +348,13 @@ class LBTMODS1BSpectrograph(LBTMODSSpectrograph):
         hdu.close()
 
         # Apply the mask
-        self.bpm_img[6390//xbin:6392//xbin, 1262//ybin:1545//ybin] = 1
+        bpm_img[6390//xbin:6392//xbin, 1262//ybin:1545//ybin] = 1
 
-        self.bpm_img[3064//xbin, 1437//ybin:1937//ybin] = 1
-        self.bpm_img[6490//xbin, 1161//ybin:1545//ybin] = 1
-        self.bpm_img[7306//xbin, 783//ybin:1531//ybin] = 1
+        bpm_img[3064//xbin, 1437//ybin:1937//ybin] = 1
+        bpm_img[6490//xbin, 1161//ybin:1545//ybin] = 1
+        bpm_img[7306//xbin, 783//ybin:1531//ybin] = 1
 
-        return self.bpm_img
+        return bpm_img
 
 
 
@@ -443,7 +444,7 @@ class LBTMODS2RSpectrograph(LBTMODSSpectrograph):
 
         return par
 
-    def bpm(self, shape=None, filename=None, det=None, **null_kwargs):
+    def bpm(self, filename, det, shape=None):
         """ Generate a BPM
 
         Parameters
@@ -458,7 +459,7 @@ class LBTMODS2RSpectrograph(LBTMODSSpectrograph):
 
         """
         # Get the empty bpm: force is always True
-        self.empty_bpm(shape=shape, filename=filename, det=det)
+        bpm_img = self.empty_bpm(shape=shape, filename=filename, det=det)
 
         msgs.info("Using hard-coded BPM for  MODS2R")
 
@@ -469,18 +470,18 @@ class LBTMODS2RSpectrograph(LBTMODSSpectrograph):
         hdu.close()
 
         # Apply the mask
-        self.bpm_img[6148//xbin:6150//xbin, 1333//ybin:1544//ybin] = 1
-        self.bpm_img[6207//xbin:6209//xbin, 1396//ybin:1544//ybin] = 1
+        bpm_img[6148//xbin:6150//xbin, 1333//ybin:1544//ybin] = 1
+        bpm_img[6207//xbin:6209//xbin, 1396//ybin:1544//ybin] = 1
 
-        self.bpm_img[6101//xbin, 1342//ybin:1544//ybin] = 1
-        self.bpm_img[6159//xbin, 1399//ybin:1544//ybin] = 1
-        self.bpm_img[6189//xbin, 1316//ybin:1544//ybin] = 1
-        self.bpm_img[7552//xbin, 1544//ybin:2771//ybin] = 1
-        self.bpm_img[7504//xbin, 1544//ybin:2774//ybin] = 1
-        self.bpm_img[4203//xbin, 0:1544//ybin] = 1
-        self.bpm_img[4155//xbin, 0:1544//ybin] = 1
+        bpm_img[6101//xbin, 1342//ybin:1544//ybin] = 1
+        bpm_img[6159//xbin, 1399//ybin:1544//ybin] = 1
+        bpm_img[6189//xbin, 1316//ybin:1544//ybin] = 1
+        bpm_img[7552//xbin, 1544//ybin:2771//ybin] = 1
+        bpm_img[7504//xbin, 1544//ybin:2774//ybin] = 1
+        bpm_img[4203//xbin, 0:1544//ybin] = 1
+        bpm_img[4155//xbin, 0:1544//ybin] = 1
 
-        return self.bpm_img
+        return bpm_img
 
 
 
@@ -564,7 +565,7 @@ class LBTMODS2BSpectrograph(LBTMODSSpectrograph):
 
         return par
 
-    def bpm(self, shape=None, filename=None, det=None, **null_kwargs):
+    def bpm(self, filename, det, shape=None):
         """ Generate a BPM
 
         Parameters
@@ -582,7 +583,7 @@ class LBTMODS2BSpectrograph(LBTMODSSpectrograph):
         #       and modify the BPM accordingly
 
         # Get the empty bpm: force is always True
-        self.empty_bpm(shape=shape, filename=filename, det=det)
+        bpm_img = self.empty_bpm(shape=shape, filename=filename, det=det)
 
         msgs.info("Using hard-coded BPM for  MODS2B")
 
@@ -593,24 +594,24 @@ class LBTMODS2BSpectrograph(LBTMODSSpectrograph):
         hdu.close()
 
         # Apply the mask
-        self.bpm_img[5176//xbin:5179//xbin, 549//ybin:1544//ybin] = 1
-        self.bpm_img[5176//xbin:5179//xbin, 1544//ybin:1628//ybin] = 1
-        self.bpm_img[4408//xbin:4410//xbin, 1544//ybin:2661//ybin] = 1
-        self.bpm_img[4408//xbin:4411//xbin, 2660//ybin:2663//ybin] = 1
-        self.bpm_img[2495//xbin:2499//xbin, 1326//ybin:1544//ybin] = 1
-        self.bpm_img[2391//xbin:2394//xbin, 1048//ybin:1051//ybin] = 1
-        self.bpm_img[1974//xbin:1980//xbin, 806//ybin:1544//ybin] = 1
-        self.bpm_img[1975//xbin:1980//xbin, 1544//ybin:1607//ybin] = 1
-        self.bpm_img[1972//xbin:1974//xbin, 1587//ybin:1589//ybin] = 1
-        self.bpm_img[274//xbin:278//xbin, 1341//ybin:1544//ybin] = 1
-        self.bpm_img[275//xbin:278//xbin, 1251//ybin:1341//ybin] = 1
-        self.bpm_img[276//xbin:278//xbin, 1242//ybin:1251//ybin] = 1
-        self.bpm_img[274//xbin:277//xbin, 1544//ybin:3066//ybin] = 1
+        bpm_img[5176//xbin:5179//xbin, 549//ybin:1544//ybin] = 1
+        bpm_img[5176//xbin:5179//xbin, 1544//ybin:1628//ybin] = 1
+        bpm_img[4408//xbin:4410//xbin, 1544//ybin:2661//ybin] = 1
+        bpm_img[4408//xbin:4411//xbin, 2660//ybin:2663//ybin] = 1
+        bpm_img[2495//xbin:2499//xbin, 1326//ybin:1544//ybin] = 1
+        bpm_img[2391//xbin:2394//xbin, 1048//ybin:1051//ybin] = 1
+        bpm_img[1974//xbin:1980//xbin, 806//ybin:1544//ybin] = 1
+        bpm_img[1975//xbin:1980//xbin, 1544//ybin:1607//ybin] = 1
+        bpm_img[1972//xbin:1974//xbin, 1587//ybin:1589//ybin] = 1
+        bpm_img[274//xbin:278//xbin, 1341//ybin:1544//ybin] = 1
+        bpm_img[275//xbin:278//xbin, 1251//ybin:1341//ybin] = 1
+        bpm_img[276//xbin:278//xbin, 1242//ybin:1251//ybin] = 1
+        bpm_img[274//xbin:277//xbin, 1544//ybin:3066//ybin] = 1
 
-        self.bpm_img[2392//xbin, 1051//ybin:1544//ybin] = 1
-        self.bpm_img[275//xbin, 1220//ybin:1242//ybin] = 1
+        bpm_img[2392//xbin, 1051//ybin:1544//ybin] = 1
+        bpm_img[275//xbin, 1220//ybin:1242//ybin] = 1
 
-        return self.bpm_img
+        return bpm_img
 
 
 #    def check_headers(self, headers):
