@@ -915,6 +915,7 @@ def robust_median_ratio(flux, ivar, flux_ref, ivar_ref, mask=None, mask_ref=None
         else:
             msgs.info('Used {:} good pixels for computing median flux ratio'.format(np.sum(new_mask)))
             ratio = np.fmax(np.fmin(flux_ref_median/flux_dat_median, max_factor), 1.0/max_factor)
+            msgs.info('The median ratio is measured to be {:}'.format(ratio))
     else:
         msgs.warn('Found only {:} good pixels for computing median flux ratio.'.format(np.sum(calc_mask))
                   + msgs.newline() + 'No median rescaling applied')
@@ -1892,11 +1893,15 @@ def scale_spec_stack(wave_grid, waves, fluxes, ivars, masks, sn, weights, ref_pe
     scales = np.zeros_like(fluxes)
     scale_method_used = []
     for iexp in range(nexp):
+        if hand_scale is not None:
+            hand_scale_iexp = hand_scale[iexp]
+        else:
+            hand_scale_iexp = None
         # TODO Create a parset for the coadd parameters!!!
         fluxes_scale[:, iexp], ivars_scale[:, iexp], scales[:, iexp], scale_method_iexp = scale_spec(
             waves[:, iexp], fluxes[:, iexp], ivars[:, iexp], sn[iexp], wave_stack, flux_stack, ivar_stack,
             mask=masks[:, iexp], mask_ref=mask_stack, ref_percentile=ref_percentile, maxiters=maxiter_scale,
-            sigrej=sigrej_scale, scale_method=scale_method, hand_scale=hand_scale, sn_max_medscale=sn_max_medscale,
+            sigrej=sigrej_scale, scale_method=scale_method, hand_scale=hand_scale_iexp, sn_max_medscale=sn_max_medscale,
             sn_min_medscale=sn_min_medscale, debug=debug, show=show)
         scale_method_used.append(scale_method_iexp)
 

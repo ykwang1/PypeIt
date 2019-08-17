@@ -420,7 +420,7 @@ def apply_sensfunc_specobjs(specobjs, sens_meta, sens_table, airmass, exptime, e
     # TODO This function should operate on a single object
     func = sens_meta['FUNC'][0]
     polyorder_vec = sens_meta['POLYORDER_VEC'][0]
-    nimgs = len(specobjs)
+    nimgs = len(specobjs) # total number of spectra in this specobjs (i.e. norder*nobj or <=nobj*ndetector)
 
     if show:
         fig = plt.figure(figsize=(12, 8))
@@ -430,13 +430,16 @@ def apply_sensfunc_specobjs(specobjs, sens_meta, sens_table, airmass, exptime, e
     for ispec in range(nimgs):
         # get the ECH_ORDER, ECH_ORDERINDX, WAVELENGTH from your science
         sobj_ispec = specobjs[ispec]
-        ## TODO Comment on the logich here. Hard to follow
-        try:
+        ## Figure out whether it's ECHELLE or Longslit/Multislit and the right index for sensfunc table
+        if sobj_ispec.pypeline == 'Echelle':
+            # ech_order is the physical order number, ech_orderindx is in order of 0 - N-1
+            # idx is the extension name
             ech_order, ech_orderindx, idx = sobj_ispec.ech_order, sobj_ispec.ech_orderindx, sobj_ispec.idx
             msgs.info('Applying sensfunc to Echelle data')
-        except:
-            ech_orderindx = 0
+        else:
             idx = sobj_ispec.idx
+            # ech_orderindx should be detector # - 1, i.e. 0 for detector 1 and 1 for detector 2
+            ech_orderindx = int(idx[-2:]) - 1
             msgs.info('Applying sensfunc to Longslit/Multislit data')
 
         for extract_type in ['boxcar', 'optimal']:
@@ -451,7 +454,7 @@ def apply_sensfunc_specobjs(specobjs, sens_meta, sens_table, airmass, exptime, e
             counts_ivar = extract['COUNTS_IVAR'].copy()
             mask = extract['MASK'].copy()
 
-            # get sensfunc from the sens_table
+            # get sensfunc using ech_orderindx from the sens_table
             coeff = sens_table[ech_orderindx]['OBJ_THETA'][0:polyorder_vec[ech_orderindx] + 2]
             wave_min = sens_table[ech_orderindx]['WAVE_MIN']
             wave_max = sens_table[ech_orderindx]['WAVE_MAX']
