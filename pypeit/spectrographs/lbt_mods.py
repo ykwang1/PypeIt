@@ -170,7 +170,7 @@ class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
 
         # 1D wavelength solution
         par['calibrations']['wavelengths']['sigdetect'] = 5.
-        par['calibrations']['wavelengths']['rms_threshold'] = 1.0
+        par['calibrations']['wavelengths']['rms_threshold'] = 0.4
         par['calibrations']['wavelengths']['fwhm'] = 10.
         #par['calibrations']['wavelengths']['lamps'] = ['XeI','ArII','ArI','NeI','KrI']]
         par['calibrations']['wavelengths']['lamps'] = ['ArI','NeI','KrI','XeI']
@@ -181,7 +181,7 @@ class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
         par['calibrations']['wavelengths']['match_toler'] = 2.5
 
         # slit
-        par['calibrations']['slits']['sigdetect'] = 1000
+        par['calibrations']['slits']['sigdetect'] = 700
 
         # Set wave tilts order
         par['calibrations']['tilts']['spat_order'] = 5
@@ -303,7 +303,7 @@ class LBTMODS1BSpectrograph(LBTMODSSpectrograph):
         par['calibrations']['wavelengths']['n_first'] = 1
 
         # slit
-        par['calibrations']['slits']['sigdetect'] = 1000
+        par['calibrations']['slits']['sigdetect'] = 700
 
         # Set wave tilts order
         par['calibrations']['tilts']['spat_order'] = 3
@@ -427,7 +427,7 @@ class LBTMODS2RSpectrograph(LBTMODSSpectrograph):
         par['calibrations']['wavelengths']['match_toler'] = 2.5
 
         # slit
-        par['calibrations']['slits']['sigdetect'] = 1000
+        par['calibrations']['slits']['sigdetect'] = 700
 
         # Set wave tilts order
         par['calibrations']['tilts']['spat_order'] = 3
@@ -548,7 +548,7 @@ class LBTMODS2BSpectrograph(LBTMODSSpectrograph):
         par['calibrations']['wavelengths']['n_first'] = 1
 
         # slit
-        par['calibrations']['slits']['sigdetect'] = 1000
+        par['calibrations']['slits']['sigdetect'] = 700
 
         # Set wave tilts order
         par['calibrations']['tilts']['spat_order'] = 3
