@@ -308,6 +308,7 @@ def load_1dspec_to_array(fnames, gdobj=None, order=None, ex_value='OPT', flux_va
 
         for iexp in range(nexp):
             hdulist_iexp = fits.open(fnames[iexp])
+            msgs.info('Loading {:}'.format(fnames[iexp]))
 
             # ToDo: The following part can be removed if all data are reduced using the leatest pipeline
             if pypeline == "Echelle":
