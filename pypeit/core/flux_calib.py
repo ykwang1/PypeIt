@@ -455,7 +455,13 @@ def apply_sensfunc_specobjs(specobjs, sens_meta, sens_table, airmass, exptime, e
             mask = extract['MASK'].copy()
 
             # get sensfunc using ech_orderindx from the sens_table
-            coeff = sens_table[ech_orderindx]['OBJ_THETA'][0:polyorder_vec[ech_orderindx] + 2]
+            try:
+                # The following line fails for spectra with only one order or one detector
+                # will call the except part instead.
+                coeff = sens_table[ech_orderindx]['OBJ_THETA'][0:polyorder_vec[ech_orderindx] + 2]
+            except:
+                coeff = sens_table[ech_orderindx]['OBJ_THETA'][0:polyorder_vec + 2]
+
             wave_min = sens_table[ech_orderindx]['WAVE_MIN']
             wave_max = sens_table[ech_orderindx]['WAVE_MAX']
             sensfunc = np.zeros_like(wave)
