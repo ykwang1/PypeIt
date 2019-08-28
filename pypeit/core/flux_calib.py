@@ -435,12 +435,42 @@ def apply_sensfunc_specobjs(specobjs, sens_meta, sens_table, airmass, exptime, e
             # ech_order is the physical order number, ech_orderindx is in order of 0 - N-1
             # idx is the extension name
             ech_order, ech_orderindx, idx = sobj_ispec.ech_order, sobj_ispec.ech_orderindx, sobj_ispec.idx
+            nsens = np.size(ech_orderindx) # to be consistent with longslit
             msgs.info('Applying sensfunc to Echelle data')
         else:
             idx = sobj_ispec.idx
-            # ech_orderindx should be detector # - 1, i.e. 0 for detector 1 and 1 for detector 2
-            ech_orderindx = int(idx[-2:]) - 1
-            msgs.info('Applying sensfunc to Longslit/Multislit data')
+            # get the minimum and maximum wavelength for the sensfunc in all detectors
+            nsens = np.size(sens_table)
+            sens_min = np.zeros(nsens)
+            sens_max = np.zeros(nsens)
+            for isens in range(nsens):
+                sens_min[isens], sens_max[isens] = sens_table[isens]['WAVE_MIN'], sens_table[isens]['WAVE_MAX']
+            ispec_min = np.min(sobj_ispec.boxcar['WAVE'][sobj_ispec.boxcar['MASK']].value)
+            ispec_max = np.max(sobj_ispec.boxcar['WAVE'][sobj_ispec.boxcar['MASK']].value)
+            ## Figure out which sensfunc we should use for multislit/longslit data
+            dwave = np.sqrt((sens_min - ispec_min) ** 2 + (sens_max - ispec_max) ** 2)
+            ech_orderindx = np.argmin(dwave)
+            if dwave[ech_orderindx] > 100.0:
+                msgs.warn('The wavelength difference between you spectra and sensfunc is more than 100 Angstrom!')
+
+            ## The following is very important for multislit spectrographa with multiple detectors
+            ## since the wavelength coverage of standard might be very different from your science data.
+            if nsens>1:
+                msgs.info('Merging sensfunc from different detectors.')
+                sens_min_global = np.min(sens_min)
+                sens_max_global = np.max(sens_max)
+                wave_sens_global, _, _ = coadd1d.get_wave_grid(sobj_ispec.boxcar['WAVE'][sobj_ispec.boxcar['MASK']].value,
+                                                       wave_method='linear', wave_grid_min=sens_min_global,
+                                                       wave_grid_max=sens_max_global, samp_fact=1.0)
+                sensfunc_global = np.zeros_like(wave_sens_global)
+                for isens in range(nsens):
+                    coeff = sens_table[isens]['OBJ_THETA'][0:polyorder_vec[isens] + 2]
+                    wave_min = sens_table[isens]['WAVE_MIN']
+                    wave_max = sens_table[isens]['WAVE_MAX']
+                    sens_wave_mask = (wave_sens_global>wave_min) & (wave_sens_global<wave_max)
+                    sensfunc_global[sens_wave_mask] = utils.func_val(coeff, wave_sens_global[sens_wave_mask], func,
+                                                                     minx=wave_min, maxx=wave_max)
+                    sensfunc_mask_global = sensfunc_global>0.0
 
         for extract_type in ['boxcar', 'optimal']:
             extract = getattr(sobj_ispec, extract_type)
@@ -453,21 +483,26 @@ def apply_sensfunc_specobjs(specobjs, sens_meta, sens_table, airmass, exptime, e
             counts = extract['COUNTS'].copy()
             counts_ivar = extract['COUNTS_IVAR'].copy()
             mask = extract['MASK'].copy()
-
-            # get sensfunc using ech_orderindx from the sens_table
-            try:
-                # The following line fails for spectra with only one order or one detector
-                # will call the except part instead.
-                coeff = sens_table[ech_orderindx]['OBJ_THETA'][0:polyorder_vec[ech_orderindx] + 2]
-            except:
-                coeff = sens_table[ech_orderindx]['OBJ_THETA'][0:polyorder_vec + 2]
-
-            wave_min = sens_table[ech_orderindx]['WAVE_MIN']
-            wave_max = sens_table[ech_orderindx]['WAVE_MAX']
             sensfunc = np.zeros_like(wave)
-            sensfunc[wave_mask] = np.exp(utils.func_val(coeff, wave[wave_mask], func,
-                                             minx=wave_min, maxx=wave_max))
 
+            if (sobj_ispec.pypeline != 'Echelle') and (nsens>1):
+                # get sensfunc by interpolating the global sensfunc derived above.
+                sensfunc[wave_mask] = np.exp(scipy.interpolate.interp1d(wave_sens_global[sensfunc_mask_global],
+                                             sensfunc_global[sensfunc_mask_global], kind='cubic',
+                                             bounds_error=False, fill_value=0.0)(wave[wave_mask]))
+            else:
+                # get sensfunc using ech_orderindx from the sens_table
+                try:
+                    # The following line fails for spectra with only one order or one detector
+                    # will call the except part instead.
+                    coeff = sens_table[ech_orderindx]['OBJ_THETA'][0:polyorder_vec[ech_orderindx] + 2]
+                except:
+                    coeff = sens_table[ech_orderindx]['OBJ_THETA'][0:polyorder_vec + 2]
+
+                wave_min = sens_table[ech_orderindx]['WAVE_MIN']
+                wave_max = sens_table[ech_orderindx]['WAVE_MAX']
+                sensfunc[wave_mask] = np.exp(utils.func_val(coeff, wave[wave_mask], func,
+                                                 minx=wave_min, maxx=wave_max))
             # get telluric from the sens_table
             if tell_correct:
                 msgs.work('Evaluate telluric!')
