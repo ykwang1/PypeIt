@@ -1555,6 +1555,21 @@ def objfind(image, thismask, slit_left, slit_righ, inmask=None, fwhm=3.0, maxdev
     # For GMOS ut180516
     #flux_spec = extract_asymbox2(thisimg[960:, :], left_asym[960:, :], righ_asym[960:, :], weight_image=totmask.astype(float)[960:, :])
     #mask_spec = extract_asymbox2(totmask[960:, :], left_asym[960:, :], righ_asym[960:, :], weight_image=totmask.astype(float)[960:, :]) < 0.3
+    # For DEIMOS J006
+    #flux_spec = extract_asymbox2(thisimg[2830:3740, :], left_asym[2830:3740, :], righ_asym[2830:3740, :], weight_image=totmask.astype(float)[2830:3740, :])
+    #mask_spec = extract_asymbox2(totmask[2830:3740, :], left_asym[2830:3740, :], righ_asym[2830:3740, :], weight_image=totmask.astype(float)[2830:3740, :]) < 0.3
+    # For DEIMOS J231
+    #flux_spec = extract_asymbox2(thisimg[3680:3810, :], left_asym[3680:3810, :], righ_asym[3680:3810, :], weight_image=totmask.astype(float)[3680:3810, :])
+    #mask_spec = extract_asymbox2(totmask[3680:3810, :], left_asym[3680:3810, :], righ_asym[3680:3810, :], weight_image=totmask.astype(float)[3680:3810, :]) < 0.3
+    # For DEIMOS J323
+    #flux_spec = extract_asymbox2(thisimg[2350:2975, :], left_asym[2350:2975, :], righ_asym[2350:2975, :], weight_image=totmask.astype(float)[2350:2975, :])
+    #mask_spec = extract_asymbox2(totmask[2350:2975, :], left_asym[2350:2975, :], righ_asym[2350:2975, :], weight_image=totmask.astype(float)[2350:2975, :]) < 0.3
+    # For DEIMOS J261
+    #flux_spec = extract_asymbox2(thisimg[2000:4000, :], left_asym[2000:4000, :], righ_asym[2000:4000, :], weight_image=totmask.astype(float)[2000:4000, :])
+    #mask_spec = extract_asymbox2(totmask[2000:4000, :], left_asym[2000:4000, :], righ_asym[2000:4000, :], weight_image=totmask.astype(float)[2000:4000, :]) < 0.3
+    # For DEIMOS J338
+    #flux_spec = extract_asymbox2(thisimg[3290:3660, :], left_asym[3290:3660, :], righ_asym[3290:3660, :], weight_image=totmask.astype(float)[3290:3660, :])
+    #mask_spec = extract_asymbox2(totmask[3290:3660, :], left_asym[3290:3660, :], righ_asym[3290:3660, :], weight_image=totmask.astype(float)[3290:3660, :]) < 0.3
     flux_spec = extract_asymbox2(thisimg, left_asym, righ_asym, weight_image=totmask.astype(float))
     mask_spec = extract_asymbox2(totmask, left_asym, righ_asym, weight_image=totmask.astype(float)) < 0.3
     flux_mean, flux_median, flux_sig = stats.sigma_clipped_stats(flux_spec, mask = mask_spec, axis=0, sigma = 3.0,
