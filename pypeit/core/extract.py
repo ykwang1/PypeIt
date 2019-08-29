@@ -1553,6 +1553,8 @@ def objfind(image, thismask, slit_left, slit_righ, inmask=None, fwhm=3.0, maxdev
     #flux_spec = extract_asymbox2(thisimg[5700:6600, :], left_asym[5700:6600, :], righ_asym[5700:6600, :], weight_image=totmask.astype(float)[5700:6600, :])
     #mask_spec = extract_asymbox2(totmask[5700:6600, :], left_asym[5700:6600, :], righ_asym[5700:6600, :], weight_image=totmask.astype(float)[5700:6600, :]) < 0.3
     # For GMOS ut180516
+    #flux_spec = extract_asymbox2(thisimg[400:900, :], left_asym[400:900, :], righ_asym[400:900, :], weight_image=totmask.astype(float)[400:900, :])
+    #mask_spec = extract_asymbox2(totmask[400:900, :], left_asym[400:900, :], righ_asym[400:900, :], weight_image=totmask.astype(float)[400:900, :]) < 0.3
     #flux_spec = extract_asymbox2(thisimg[960:, :], left_asym[960:, :], righ_asym[960:, :], weight_image=totmask.astype(float)[960:, :])
     #mask_spec = extract_asymbox2(totmask[960:, :], left_asym[960:, :], righ_asym[960:, :], weight_image=totmask.astype(float)[960:, :]) < 0.3
     # For DEIMOS J006
@@ -1561,6 +1563,9 @@ def objfind(image, thismask, slit_left, slit_righ, inmask=None, fwhm=3.0, maxdev
     # For DEIMOS J011
     #flux_spec = extract_asymbox2(thisimg[2470:3330, :], left_asym[2470:3330, :], righ_asym[2470:3330, :], weight_image=totmask.astype(float)[2470:3330, :])
     #mask_spec = extract_asymbox2(totmask[2470:3330, :], left_asym[2470:3330, :], righ_asym[2470:3330, :], weight_image=totmask.astype(float)[2470:3330, :]) < 0.3
+    # DEIMOS J183+05
+    #flux_spec = extract_asymbox2(thisimg[2670:4060, :], left_asym[2670:4060, :], righ_asym[2670:4060, :], weight_image=totmask.astype(float)[2670:4060, :])
+    #mask_spec = extract_asymbox2(totmask[2670:4060, :], left_asym[2670:4060, :], righ_asym[2670:4060, :], weight_image=totmask.astype(float)[2670:4060, :]) < 0.3
     # For DEIMOS J231
     #flux_spec = extract_asymbox2(thisimg[3680:3810, :], left_asym[3680:3810, :], righ_asym[3680:3810, :], weight_image=totmask.astype(float)[3680:3810, :])
     #mask_spec = extract_asymbox2(totmask[3680:3810, :], left_asym[3680:3810, :], righ_asym[3680:3810, :], weight_image=totmask.astype(float)[3680:3810, :]) < 0.3
@@ -1576,13 +1581,6 @@ def objfind(image, thismask, slit_left, slit_righ, inmask=None, fwhm=3.0, maxdev
     # For LRIS
     flux_spec = extract_asymbox2(thisimg[1300:, :], left_asym[1300:, :], righ_asym[1300:, :], weight_image=totmask.astype(float)[1300:, :])
     mask_spec = extract_asymbox2(totmask[1300:, :], left_asym[1300:, :], righ_asym[1300:, :], weight_image=totmask.astype(float)[1300:, :]) < 0.3
-    #flux_spec = extract_asymbox2(thisimg, left_asym, righ_asym, weight_image=totmask.astype(float))
-    #mask_spec = extract_asymbox2(totmask, left_asym, righ_asym, weight_image=totmask.astype(float)) < 0.3
-    #flux_spec = extract_asymbox2(thisimg[400:900, :], left_asym[400:900, :], righ_asym[400:900, :], weight_image=totmask.astype(float)[400:900, :])
-    #mask_spec = extract_asymbox2(totmask[400:900, :], left_asym[400:900, :], righ_asym[400:900, :], weight_image=totmask.astype(float)[400:900, :]) < 0.3
-    # DEIMOS J183+05
-    #flux_spec = extract_asymbox2(thisimg[2670:4060, :], left_asym[2670:4060, :], righ_asym[2670:4060, :], weight_image=totmask.astype(float)[2670:4060, :])
-    #mask_spec = extract_asymbox2(totmask[2670:4060, :], left_asym[2670:4060, :], righ_asym[2670:4060, :], weight_image=totmask.astype(float)[2670:4060, :]) < 0.3
     #flux_spec = extract_asymbox2(thisimg, left_asym, righ_asym, weight_image=totmask.astype(float))
     #mask_spec = extract_asymbox2(totmask, left_asym, righ_asym, weight_image=totmask.astype(float)) < 0.3
     flux_mean, flux_median, flux_sig = stats.sigma_clipped_stats(flux_spec, mask = mask_spec, axis=0, sigma = 3.0,
