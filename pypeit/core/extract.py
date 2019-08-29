@@ -1555,6 +1555,24 @@ def objfind(image, thismask, slit_left, slit_righ, inmask=None, fwhm=3.0, maxdev
     # For GMOS ut180516
     #flux_spec = extract_asymbox2(thisimg[400:900, :], left_asym[400:900, :], righ_asym[400:900, :], weight_image=totmask.astype(float)[400:900, :])
     #mask_spec = extract_asymbox2(totmask[400:900, :], left_asym[400:900, :], righ_asym[400:900, :], weight_image=totmask.astype(float)[400:900, :]) < 0.3
+    # For DEIMOS J036
+    #flux_spec = extract_asymbox2(thisimg[2730:3120, :], left_asym[2730:3120, :], righ_asym[2730:3120, :], weight_image=totmask.astype(float)[2730:3120, :])
+    #mask_spec = extract_asymbox2(totmask[2730:3120, :], left_asym[2730:3120, :], righ_asym[2730:3120, :], weight_image=totmask.astype(float)[2730:3120, :]) < 0.3
+    # For DEIMOS J261
+    #flux_spec = extract_asymbox2(thisimg[2000:4000, :], left_asym[2000:4000, :], righ_asym[2000:4000, :], weight_image=totmask.astype(float)[2000:4000, :])
+    #mask_spec = extract_asymbox2(totmask[2000:4000, :], left_asym[2000:4000, :], righ_asym[2000:4000, :], weight_image=totmask.astype(float)[2000:4000, :]) < 0.3
+    # For DEIMOS J1629
+    #flux_spec = extract_asymbox2(thisimg[2800:3600, :], left_asym[2800:3600, :], righ_asym[2800:3600, :], weight_image=totmask.astype(float)[2800:3600, :])
+    #mask_spec = extract_asymbox2(totmask[2800:3600, :], left_asym[2800:3600, :], righ_asym[2800:3600, :], weight_image=totmask.astype(float)[2800:3600, :]) < 0.3
+    # For DEIMOS J2102
+    #flux_spec = extract_asymbox2(thisimg[1790:2660, :], left_asym[1790:2660, :], righ_asym[1790:2660, :], weight_image=totmask.astype(float)[1790:2660, :])
+    #mask_spec = extract_asymbox2(totmask[1790:2660, :], left_asym[1790:2660, :], righ_asym[1790:2660, :], weight_image=totmask.astype(float)[1790:2660, :]) < 0.3
+    # For DEIMOS J006
+    #flux_spec = extract_asymbox2(thisimg[2830:3740, :], left_asym[2830:3740, :], righ_asym[2830:3740, :], weight_image=totmask.astype(float)[2830:3740, :])
+    #mask_spec = extract_asymbox2(totmask[2830:3740, :], left_asym[2830:3740, :], righ_asym[2830:3740, :], weight_image=totmask.astype(float)[2830:3740, :]) < 0.3
+    # For DEIMOS J011
+    #flux_spec = extract_asymbox2(thisimg[2470:3330, :], left_asym[2470:3330, :], righ_asym[2470:3330, :], weight_image=totmask.astype(float)[2470:3330, :])
+    #mask_spec = extract_asymbox2(totmask[2470:3330, :], left_asym[2470:3330, :], righ_asym[2470:3330, :], weight_image=totmask.astype(float)[2470:3330, :]) < 0.3
     flux_spec = extract_asymbox2(thisimg, left_asym, righ_asym, weight_image=totmask.astype(float))
     mask_spec = extract_asymbox2(totmask, left_asym, righ_asym, weight_image=totmask.astype(float)) < 0.3
     flux_mean, flux_median, flux_sig = stats.sigma_clipped_stats(flux_spec, mask = mask_spec, axis=0, sigma = 3.0,
