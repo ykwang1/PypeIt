@@ -401,7 +401,8 @@ class LBTMODS2RSpectrograph(LBTMODSSpectrograph):
                             gain            = 1.7,
                             ronoise         = 2.8,
                             datasec='[:, 49:8240]',
-                            oscansec='[:, 8240:]',
+                            oscansec='[:, 30:45]',
+                            #oscansec='[:, 8240:]',
                             suffix          = '_mods2r'
                             )]
         self.numhead = 1
