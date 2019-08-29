@@ -1550,13 +1550,16 @@ def objfind(image, thismask, slit_left, slit_righ, inmask=None, fwhm=3.0, maxdev
     # This extract_asymbox2 call smashes the image in the spectral direction along the curved object traces
     # TODO Should we be passing the mask here with extract_asymbox or not?
     # For LBT I choose the region between 8900A and 9700A for the z>6.5 quasars
-    flux_spec = extract_asymbox2(thisimg[5700:6600, :], left_asym[5700:6600, :], righ_asym[5700:6600, :], weight_image=totmask.astype(float)[5700:6600, :])
-    mask_spec = extract_asymbox2(totmask[5700:6600, :], left_asym[5700:6600, :], righ_asym[5700:6600, :], weight_image=totmask.astype(float)[5700:6600, :]) < 0.3
+    #flux_spec = extract_asymbox2(thisimg[5700:6600, :], left_asym[5700:6600, :], righ_asym[5700:6600, :], weight_image=totmask.astype(float)[5700:6600, :])
+    #mask_spec = extract_asymbox2(totmask[5700:6600, :], left_asym[5700:6600, :], righ_asym[5700:6600, :], weight_image=totmask.astype(float)[5700:6600, :]) < 0.3
     # For GMOS ut180516
     #flux_spec = extract_asymbox2(thisimg[400:900, :], left_asym[400:900, :], righ_asym[400:900, :], weight_image=totmask.astype(float)[400:900, :])
     #mask_spec = extract_asymbox2(totmask[400:900, :], left_asym[400:900, :], righ_asym[400:900, :], weight_image=totmask.astype(float)[400:900, :]) < 0.3
-    #flux_spec = extract_asymbox2(thisimg, left_asym, righ_asym, weight_image=totmask.astype(float))
-    #mask_spec = extract_asymbox2(totmask, left_asym, righ_asym, weight_image=totmask.astype(float)) < 0.3
+    # DEIMOS J183+05
+    #flux_spec = extract_asymbox2(thisimg[2670:4060, :], left_asym[2670:4060, :], righ_asym[2670:4060, :], weight_image=totmask.astype(float)[2670:4060, :])
+    #mask_spec = extract_asymbox2(totmask[2670:4060, :], left_asym[2670:4060, :], righ_asym[2670:4060, :], weight_image=totmask.astype(float)[2670:4060, :]) < 0.3
+    flux_spec = extract_asymbox2(thisimg, left_asym, righ_asym, weight_image=totmask.astype(float))
+    mask_spec = extract_asymbox2(totmask, left_asym, righ_asym, weight_image=totmask.astype(float)) < 0.3
     flux_mean, flux_median, flux_sig = stats.sigma_clipped_stats(flux_spec, mask = mask_spec, axis=0, sigma = 3.0,
                                                            cenfunc='median', stdfunc=utils.nan_mad_std)
 ##   New CODE
