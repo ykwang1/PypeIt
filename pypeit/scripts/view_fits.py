@@ -34,6 +34,7 @@ def main(args):
     from pypeit.spectrographs import keck_lris
     from pypeit.spectrographs import keck_deimos
     from pypeit.spectrographs import gemini_gmos
+    from pypeit.spectrographs import mmt_binospec
     from pypeit import msgs
     from pypeit import ginga
 
@@ -62,6 +63,9 @@ def main(args):
         # TODO this routine should show the whole mosaic if no detector number is passed in!
         # Need to figure out the number of amps
         img, _, _ = gemini_gmos.read_gmos(args.file, det=args.det)
+    elif 'mmt_binospec' in args.spectrograph:
+        gen_binospec = mmt_binospec.MMTBINOSPECSpectrograph()
+        img, _, _, _, _ = gen_binospec.get_rawimage(args.file, det=args.det)
     else:
         hdu = fits.open(args.file)
         img = hdu[args.exten].data
