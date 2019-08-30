@@ -127,8 +127,8 @@ class MMTBINOSPECSpectrograph(spectrograph.Spectrograph):
         par['calibrations']['arcframe']['number'] = 1
         # Wavelengths
         # 1D wavelength solution
-        par['calibrations']['wavelengths']['rms_threshold'] = 0.20 #0.20  # Might be grating dependent..
-        par['calibrations']['wavelengths']['sigdetect']=5.0
+        par['calibrations']['wavelengths']['rms_threshold'] = 0.5
+        par['calibrations']['wavelengths']['sigdetect'] = 20.
         par['calibrations']['wavelengths']['fwhm']= 5.0
         par['calibrations']['wavelengths']['lamps'] = ['ArI', 'ArII']
         par['calibrations']['wavelengths']['nonlinear_counts'] = self.detector[0]['nonlinear'] * self.detector[0]['saturation']
@@ -278,18 +278,22 @@ class MMTBINOSPECSpectrograph(spectrograph.Spectrograph):
             if kk == 0:
                 array[b2:inx+b2,:iny] = data
                 rawdatasec_img[b2:inx+b2,:iny] = kk + 1
+                array[:b2,:iny] = overscan
                 oscansec_img[:b2,:iny] = kk + 1
             elif kk == 1:
                 array[b2+inx:2*inx+b2,:iny] = data
                 rawdatasec_img[b2+inx:2*inx+b2:,:iny] = kk + 1
+                array[2*inx+b2:,:iny] = overscan
                 oscansec_img[2*inx+b2:,:iny] = kk + 1
             elif kk == 3:
                 array[b2:inx+b2,iny:] = np.fliplr(data)
                 rawdatasec_img[b2:inx+b2,iny:] = kk + 1
+                array[:b2,iny:] = overscan
                 oscansec_img[:b2,iny:] = kk + 1
             elif kk == 2:
                 array[b2+inx:2*inx+b2,iny:] = np.fliplr(data)
                 rawdatasec_img[b2+inx:2*inx+b2,iny:] = kk + 1
+                array[2*inx+b2:, iny:] = overscan
                 oscansec_img[2*inx+b2:, iny:] = kk + 1
 
         # Need the exposure time
