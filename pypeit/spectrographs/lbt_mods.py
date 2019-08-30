@@ -154,8 +154,8 @@ class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
                             numamplifiers   = 1,
                             gain            = 2.5,
                             ronoise         = 4.2,
-                            datasec='[:, 49:8240]',
-                            oscansec='[:, 8240:]',
+                            #datasec='[:, 49:8240]',
+                            #oscansec='[:, 8240:]',
                             suffix          = '_mods1r'
                             )]
         self.numhead = 1
@@ -281,8 +281,8 @@ class LBTMODS1BSpectrograph(LBTMODSSpectrograph):
                             numamplifiers   = 1,
                             gain            = 2.1,
                             ronoise         = 3.0,
-                            datasec='[:, 49:8240]',
-                            oscansec='[:, 8240:]',
+                            #datasec='[:, 49:8240]',
+                            #oscansec='[:, 8240:]',
                             suffix          = '_mods1b'
                             )]
         self.numhead = 1
@@ -400,8 +400,8 @@ class LBTMODS2RSpectrograph(LBTMODSSpectrograph):
                             numamplifiers   = 1,
                             gain            = 1.7,
                             ronoise         = 2.8,
-                            datasec='[:, 49:8240]',
-                            oscansec='[:, 30:45]',
+                            #datasec='[:, 49:8240]',
+                            #oscansec='[:, 30:45]',
                             #oscansec='[:, 8240:]',
                             suffix          = '_mods2r'
                             )]
@@ -527,8 +527,8 @@ class LBTMODS2BSpectrograph(LBTMODSSpectrograph):
                             numamplifiers   = 1,
                             gain            = 2.0,
                             ronoise         = 3.7,
-                            datasec='[:, 49:8240]',
-                            oscansec='[:, 8240:]',
+                            #datasec='[:, 49:8240]',
+                            #oscansec='[:, 8240:]',
                             suffix          = '_mods2b'
                             )]
         self.numhead = 1
