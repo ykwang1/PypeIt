@@ -13,7 +13,7 @@ from pypeit.par import pypeitpar
 from pypeit.spectrographs import spectrograph
 from pypeit.core import pixels
 from pypeit.core import parse
-
+from pypeit.core import procimg
 
 from pypeit import debugger
 
@@ -152,7 +152,7 @@ class MMTBINOSPECSpectrograph(spectrograph.Spectrograph):
 
         par['scienceframe']['process']['sigclip'] = 20.0
         par['scienceframe']['process']['satpix'] ='nothing'
-        par['scienceframe']['process']['overscan'] ='median'
+        #par['scienceframe']['process']['overscan'] ='median'
 
         # Set the default exposure time ranges for the frame typing
         par['calibrations']['standardframe']['exprng'] = [None, 100]
@@ -266,7 +266,7 @@ class MMTBINOSPECSpectrograph(spectrograph.Spectrograph):
         # insert extensions into master image...
         for kk, jj in enumerate(order):
             # grab complete extension...
-            data, overscan, datasec, biassec, x1, x2 = binospec_read_amp(hdu, jj)
+            data, overscan, datasec, biassec = binospec_read_amp(hdu, jj)
 
             # insert components into output array...
             inx = data.shape[0]
@@ -283,27 +283,27 @@ class MMTBINOSPECSpectrograph(spectrograph.Spectrograph):
                 array[b2:inx+b2,:iny] = data
                 rawdatasec_img[b2:inx+b2,:iny] = kk + 1
                 array[:b2,:iny] = overscan
-                oscansec_img[:b2,:iny] = kk + 1
+                oscansec_img[2:b2,:iny] = kk + 1
             elif kk == 1:
                 array[b2+inx:2*inx+b2,:iny] = data
                 rawdatasec_img[b2+inx:2*inx+b2:,:iny] = kk + 1
                 array[2*inx+b2:,:iny] = overscan
                 oscansec_img[2*inx+b2:,:iny] = kk + 1
-            elif kk == 3:
-                array[b2:inx+b2,iny:] = np.fliplr(data)
-                rawdatasec_img[b2:inx+b2,iny:] = kk + 1
-                array[:b2,iny:] = overscan
-                oscansec_img[:b2,iny:] = kk + 1
             elif kk == 2:
                 array[b2+inx:2*inx+b2,iny:] = np.fliplr(data)
                 rawdatasec_img[b2+inx:2*inx+b2,iny:] = kk + 1
                 array[2*inx+b2:, iny:] = overscan
                 oscansec_img[2*inx+b2:, iny:] = kk + 1
+            elif kk == 3:
+                array[b2:inx+b2,iny:] = np.fliplr(data)
+                rawdatasec_img[b2:inx+b2,iny:] = kk + 1
+                array[:b2,iny:] = overscan
+                oscansec_img[2:b2,iny:] = kk + 1
 
         # Need the exposure time
         exptime = hdu[self.meta['exptime']['ext']].header[self.meta['exptime']['card']]
         # Return, transposing array back to orient the overscan properly
-        return np.flipud(array), hdu, exptime, np.flipud(rawdatasec_img), np.flipud(oscansec_img)
+        return np.fliplr(np.flipud(array)), hdu, exptime, np.fliplr(np.flipud(rawdatasec_img)), np.fliplr(np.flipud(oscansec_img))
 
 
 def binospec_read_amp(inp, ext):
@@ -342,26 +342,62 @@ def binospec_read_amp(inp, ext):
     temp = hdu[ext].data.transpose()
     tsize = temp.shape
     nxt = tsize[0]
+    nyt = tsize[1]
 
     # parse the DETSEC keyword to determine the size of the array.
     header = hdu[ext].header
-    detsec = header['DETSEC']
-    x1, x2, y1, y2 = np.array(parse.load_sections(detsec, fmt_iraf=False)).flatten()
+    #detsec = header['DETSEC']
+    #x1, x2, y1, y2 = np.array(parse.load_sections(detsec, fmt_iraf=False)).flatten()
 
     # parse the DATASEC keyword to determine the size of the science region (unbinned)
     datasec = header['DATASEC']
     xdata1, xdata2, ydata1, ydata2 = np.array(parse.load_sections(datasec, fmt_iraf=False)).flatten()
     datasec = '[{:}:{:},{:}:{:}]'.format(xdata1 - 1, xdata2, ydata1-1, ydata2)
 
+    # Overscan X-axis
+    # Since pypeit can only subtract overscan along one axis, I'm subtract the overscan here using median method.
+    if xdata1 > 1:
+        overscanx = temp[0:xdata1-1, :]
+        overscanx_vec = np.median(overscanx, axis=0)
+        temp = temp - overscanx_vec[None,:]
+    data = temp[xdata1 - 1:xdata2, ydata1 -1 : ydata2]
+
+    # Overscan Y-axis
+    if ydata2<nyt:
+        os1, os2 = ydata2, nyt-1
+        overscany = temp[xdata1 - 1:xdata2, ydata2:os2]
+        overscany_vec = np.median(overscany, axis=1)
+        data = data -  overscany_vec[:,None]
+
+    biassec = '[0:{:},{:}:{:}]'.format(xdata1-1, ydata1-1, ydata2)
+    xos1, xos2, yos1, yos2 = np.array(parse.load_sections(biassec, fmt_iraf=False)).flatten()
+    overscan = np.zeros_like(temp[xos1:xos2, yos1:yos2]) # Give a zero fake overscan at the edge of each amplifiers
+
+    return data, overscan, datasec, biassec
+
+
+'''
+    # Subtract overscan along y-axis
+    if ydata2<nyt-2:
+        oscany = np.median(temp[:, ydata2:nyt],axis=1)
+        #from scipy import signal
+        #ossub = signal.savgol_filter(oscany, 65, 5)
+        ossub = oscany.copy()
+        temp = temp - ossub[:, None]
     # grab the components...
     data = temp[xdata1 - 1:xdata2, ydata1 -1 : ydata2]
 
     # Overscan
     biassec = '[0:{:},{:}:{:}]'.format(xdata1-1, ydata1-1, ydata2)
     xdata1, xdata2, ydata1, ydata2 = np.array(parse.load_sections(biassec, fmt_iraf=False)).flatten()
-    overscan = temp[xdata1:xdata2, ydata1: ydata2]
+    from IPython import embed
+    embed()
+    ## ToDO: Figure out the real overscan along x-axis
+    overscan = temp[xdata1:xdata2, ydata1:ydata2]
+    #overscan =np.zeros_like(temp[xdata1:xdata2, ydata1:ydata2]) + np.median(temp[xdata1:xdata2,:np.max([nyt-ydata2,50])])
 
     # Return
-    return data, overscan, datasec, biassec, x1, x2
+    return data, overscan, datasec, biassec
 
 
+'''
