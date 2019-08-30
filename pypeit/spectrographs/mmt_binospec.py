@@ -124,7 +124,7 @@ class MMTBINOSPECSpectrograph(spectrograph.Spectrograph):
         par['calibrations']['biasframe']['number'] = 0
         par['calibrations']['pixelflatframe']['number'] = 5
         par['calibrations']['traceframe']['number'] = 5
-        par['calibrations']['arcframe']['number'] = 1
+        par['calibrations']['arcframe']['number'] = 5
         par['calibrations']['arcframe']['process']['overscan'] ='median'
         # Wavelengths
         # 1D wavelength solution
@@ -141,7 +141,7 @@ class MMTBINOSPECSpectrograph(spectrograph.Spectrograph):
         par['calibrations']['tilts']['spec_order'] = 7
 
         # Flats
-        par['calibrations']['flatfield']['illumflatten'] = False
+        par['calibrations']['flatfield']['illumflatten'] = True
 
         # Extraction
         par['scienceimage']['bspline_spacing'] = 0.8
@@ -280,22 +280,22 @@ class MMTBINOSPECSpectrograph(spectrograph.Spectrograph):
             b1, b2, b3, b4 = np.array(parse.load_sections(biassec, fmt_iraf=False)).flatten()
 
             if kk == 0:
-                array[b2:inx+b2,:iny] = data
+                array[b2:inx+b2,:iny] = data #* self.detector[det-1]['gain'][kk]
                 rawdatasec_img[b2:inx+b2,:iny] = kk + 1
                 array[:b2,:iny] = overscan
                 oscansec_img[2:b2,:iny] = kk + 1
             elif kk == 1:
-                array[b2+inx:2*inx+b2,:iny] = data
+                array[b2+inx:2*inx+b2,:iny] = data #* self.detector[det-1]['gain'][kk]
                 rawdatasec_img[b2+inx:2*inx+b2:,:iny] = kk + 1
                 array[2*inx+b2:,:iny] = overscan
                 oscansec_img[2*inx+b2:,:iny] = kk + 1
             elif kk == 2:
-                array[b2+inx:2*inx+b2,iny:] = np.fliplr(data)
+                array[b2+inx:2*inx+b2,iny:] = np.fliplr(data) #* self.detector[det-1]['gain'][kk]
                 rawdatasec_img[b2+inx:2*inx+b2,iny:] = kk + 1
                 array[2*inx+b2:, iny:] = overscan
                 oscansec_img[2*inx+b2:, iny:] = kk + 1
             elif kk == 3:
-                array[b2:inx+b2,iny:] = np.fliplr(data)
+                array[b2:inx+b2,iny:] = np.fliplr(data) #* self.detector[det-1]['gain'][kk]
                 rawdatasec_img[b2:inx+b2,iny:] = kk + 1
                 array[:b2,iny:] = overscan
                 oscansec_img[2:b2,iny:] = kk + 1

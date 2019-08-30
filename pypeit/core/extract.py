@@ -1597,10 +1597,10 @@ def objfind(image, thismask, slit_left, slit_righ, inmask=None, fwhm=3.0, maxdev
     #flux_spec = extract_asymbox2(thisimg[1300:1600, :], left_asym[1300:1600, :], righ_asym[1300:1600, :], weight_image=totmask.astype(float)[1300:1600, :])
     #mask_spec = extract_asymbox2(totmask[1300:1600, :], left_asym[1300:1600, :], righ_asym[1300:1600, :], weight_image=totmask.astype(float)[1300:1600, :]) < 0.3
     # For BinoSpec
-    #flux_spec = extract_asymbox2(thisimg[2900:3180, :], left_asym[2900:3180, :], righ_asym[2900:3180, :], weight_image=totmask.astype(float)[2900:3180, :])
-    #mask_spec = extract_asymbox2(totmask[2900:3180, :], left_asym[2900:3180, :], righ_asym[2900:3180, :], weight_image=totmask.astype(float)[2900:3180, :]) < 0.3
-    flux_spec = extract_asymbox2(thisimg, left_asym, righ_asym, weight_image=totmask.astype(float))
-    mask_spec = extract_asymbox2(totmask, left_asym, righ_asym, weight_image=totmask.astype(float)) < 0.3
+    flux_spec = extract_asymbox2(thisimg[2900:3180, :], left_asym[2900:3180, :], righ_asym[2900:3180, :], weight_image=totmask.astype(float)[2900:3180, :])
+    mask_spec = extract_asymbox2(totmask[2900:3180, :], left_asym[2900:3180, :], righ_asym[2900:3180, :], weight_image=totmask.astype(float)[2900:3180, :]) < 0.3
+    #flux_spec = extract_asymbox2(thisimg, left_asym, righ_asym, weight_image=totmask.astype(float))
+    #mask_spec = extract_asymbox2(totmask, left_asym, righ_asym, weight_image=totmask.astype(float)) < 0.3
     flux_mean, flux_median, flux_sig = stats.sigma_clipped_stats(flux_spec, mask = mask_spec, axis=0, sigma = 3.0,
                                                            cenfunc='median', stdfunc=utils.nan_mad_std)
 ##   New CODE
