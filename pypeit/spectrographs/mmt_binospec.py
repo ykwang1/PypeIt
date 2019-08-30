@@ -125,6 +125,7 @@ class MMTBINOSPECSpectrograph(spectrograph.Spectrograph):
         par['calibrations']['pixelflatframe']['number'] = 5
         par['calibrations']['traceframe']['number'] = 5
         par['calibrations']['arcframe']['number'] = 1
+        par['calibrations']['arcframe']['process']['overscan'] ='median'
         # Wavelengths
         # 1D wavelength solution
         par['calibrations']['wavelengths']['rms_threshold'] = 0.5
@@ -136,6 +137,8 @@ class MMTBINOSPECSpectrograph(spectrograph.Spectrograph):
 
         # Tilt parameters
         par['calibrations']['tilts']['tracethresh'] =  10.0
+        par['calibrations']['tilts']['spat_order'] = 11
+        par['calibrations']['tilts']['spec_order'] = 7
 
         # Flats
         par['calibrations']['flatfield']['illumflatten'] = False
@@ -149,9 +152,10 @@ class MMTBINOSPECSpectrograph(spectrograph.Spectrograph):
 
         par['scienceframe']['process']['sigclip'] = 20.0
         par['scienceframe']['process']['satpix'] ='nothing'
+        par['scienceframe']['process']['overscan'] ='median'
 
         # Set the default exposure time ranges for the frame typing
-        par['calibrations']['standardframe']['exprng'] = [None, 20]
+        par['calibrations']['standardframe']['exprng'] = [None, 100]
         par['calibrations']['arcframe']['exprng'] = [20, None]
         par['calibrations']['darkframe']['exprng'] = [20, None]
         par['scienceframe']['exprng'] = [20, None]
