@@ -147,7 +147,7 @@ class FlatField(calibrationimage.CalibrationImage, masterframe.MasterFrame):
                 self.process_steps += ['trim']
             # JFH I'm commenting out apply gain, since the flat field routines expect images in ADU for the nonlinear_counts,
             # but we need to transition everything to counts.
-            #self.process_steps += ['apply_gain']
+            self.process_steps += ['apply_gain'] # FW: We do need apply_gain for detectors with multiple amps
             self.process_steps += ['orient']
             self.steps.append(inspect.stack()[0][3])
             # Do it
