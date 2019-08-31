@@ -137,8 +137,8 @@ class MMTBINOSPECSpectrograph(spectrograph.Spectrograph):
 
         # Tilt parameters
         par['calibrations']['tilts']['tracethresh'] =  10.0
-        par['calibrations']['tilts']['spat_order'] = 11
-        par['calibrations']['tilts']['spec_order'] = 7
+        par['calibrations']['tilts']['spat_order'] = 5
+        par['calibrations']['tilts']['spec_order'] = 6
 
         # Flats
         par['calibrations']['flatfield']['illumflatten'] = True
