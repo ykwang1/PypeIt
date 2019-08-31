@@ -285,12 +285,12 @@ class MMTBINOSPECSpectrograph(spectrograph.Spectrograph):
                 array[:b2,:iny] = overscan
                 oscansec_img[2:b2,:iny] = kk + 1
             elif kk == 1:
-                array[b2+inx:2*inx+b2,:iny] = data #* self.detector[det-1]['gain'][kk]
+                array[b2+inx:2*inx+b2,:iny] = np.flipud(data) #* self.detector[det-1]['gain'][kk]
                 rawdatasec_img[b2+inx:2*inx+b2:,:iny] = kk + 1
                 array[2*inx+b2:,:iny] = overscan
                 oscansec_img[2*inx+b2:,:iny] = kk + 1
             elif kk == 2:
-                array[b2+inx:2*inx+b2,iny:] = np.fliplr(data) #* self.detector[det-1]['gain'][kk]
+                array[b2+inx:2*inx+b2,iny:] = np.fliplr(np.flipud(data)) #* self.detector[det-1]['gain'][kk]
                 rawdatasec_img[b2+inx:2*inx+b2,iny:] = kk + 1
                 array[2*inx+b2:, iny:] = overscan
                 oscansec_img[2*inx+b2:, iny:] = kk + 1
