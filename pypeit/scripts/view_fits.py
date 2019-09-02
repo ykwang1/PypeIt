@@ -35,6 +35,7 @@ def main(args):
     from pypeit.spectrographs import keck_deimos
     from pypeit.spectrographs import gemini_gmos
     from pypeit.spectrographs import mmt_binospec
+    from pypeit.spectrographs import lbt_mods
     from pypeit import msgs
     from pypeit import ginga
 
@@ -66,6 +67,9 @@ def main(args):
     elif 'mmt_binospec' in args.spectrograph:
         gen_binospec = mmt_binospec.MMTBINOSPECSpectrograph()
         img, _, _, _, _ = gen_binospec.get_rawimage(args.file, det=args.det)
+    elif 'lbt_mods' in args.spectrograph:
+        gen_mods = lbt_mods.LBTMODSSpectrograph()
+        img, _, _, _, _ = gen_mods.get_rawimage(args.file, None)
     else:
         hdu = fits.open(args.file)
         img = hdu[args.exten].data
