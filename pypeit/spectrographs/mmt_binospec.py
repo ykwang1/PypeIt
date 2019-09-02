@@ -1,21 +1,15 @@
 """ Module for MMT/BINOSPEC specific codes
 """
 import glob
-import os
 import numpy as np
 from astropy.io import fits
 
 from pypeit import msgs
 from pypeit import telescopes
 from pypeit.core import framematch
-from pypeit import utils
 from pypeit.par import pypeitpar
 from pypeit.spectrographs import spectrograph
-from pypeit.core import pixels
 from pypeit.core import parse
-from pypeit.core import procimg
-
-from pypeit import debugger
 
 class MMTBINOSPECSpectrograph(spectrograph.Spectrograph):
     """
