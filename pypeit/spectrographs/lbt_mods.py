@@ -11,7 +11,7 @@ from pypeit.par import pypeitpar
 from pypeit.spectrographs import spectrograph
 from pypeit.core import parse
 
-# ToDo: test MODS1B and MODS2B
+# FW ToDo: test MODS1B and MODS2B
 
 class LBTMODSSpectrograph(spectrograph.Spectrograph):
     """
