@@ -193,7 +193,7 @@ class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
         #par['calibrations']['wavelengths']['method'] = 'reidentify'
         #par['calibrations']['wavelengths']['reid_arxiv'] = 'shane_kast_blue_600_4310_d55.json'
 
-        #par['calibrations']['biasframe']['useframe'] = 'bias'
+        par['calibrations']['biasframe']['useframe'] = 'bias'
 
 
         return par
