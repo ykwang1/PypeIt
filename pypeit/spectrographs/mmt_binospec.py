@@ -11,6 +11,9 @@ from pypeit.par import pypeitpar
 from pypeit.spectrographs import spectrograph
 from pypeit.core import parse
 
+## FW ToDo: I subtract the overscan when reading data rather than pasrse it to procimg.py since procimg does not
+##    support subtracting overscan in both x and y-axis
+
 class MMTBINOSPECSpectrograph(spectrograph.Spectrograph):
     """
     Child to handle MMT/BINOSPEC specific code
