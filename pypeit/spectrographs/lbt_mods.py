@@ -1,5 +1,6 @@
 """ Module for LBT/MODS specific codes
 """
+import glob
 import numpy as np
 from astropy.io import fits
 
@@ -11,7 +12,6 @@ from pypeit.spectrographs import spectrograph
 from pypeit.core import parse
 
 # ToDo: test MODS1B and MODS2B
-# ToDo: write a reader to read different quadrants. currently assuming one giant detector with one amplifier
 
 class LBTMODSSpectrograph(spectrograph.Spectrograph):
     """
@@ -32,9 +32,9 @@ class LBTMODSSpectrograph(spectrograph.Spectrograph):
         par = pypeitpar.PypeItPar()
         # Frame numbers
         par['calibrations']['standardframe']['number'] = 1
-        par['calibrations']['biasframe']['number'] = 5
-        par['calibrations']['pixelflatframe']['number'] = 5
-        par['calibrations']['traceframe']['number'] = 5
+        par['calibrations']['biasframe']['number'] = 1
+        par['calibrations']['pixelflatframe']['number'] = 1
+        par['calibrations']['traceframe']['number'] = 1
         par['calibrations']['arcframe']['number'] = 1
 
         # Scienceimage default parameters
@@ -128,6 +128,75 @@ class LBTMODSSpectrograph(spectrograph.Spectrograph):
         msgs.warn('Cannot determine if frames are of type {0}.'.format(ftype))
         return np.zeros(len(fitstbl), dtype=bool)
 
+    def get_rawimage(self, raw_file, det):
+        """
+        Load up the raw image and generate a few other bits and pieces
+        that are key for image processing
+
+        Args:
+            raw_file (str):
+            det (int):
+
+        Returns:
+            tuple:
+                raw_img (np.ndarray) -- Raw image for this detector
+                hdu (astropy.io.fits.HDUList)
+                exptime (float)
+                rawdatasec_img (np.ndarray)
+                oscansec_img (np.ndarray)
+
+        """
+        # Check for file; allow for extra .gz, etc. suffix
+        fil = glob.glob(raw_file + '*')
+        if len(fil) != 1:
+            msgs.error("Found {:d} files matching {:s}".format(len(fil)))
+
+        # Read
+        msgs.info("Reading LBT/MODS file: {:s}".format(fil[0]))
+        hdu = fits.open(fil[0])
+        head = hdu[0].header
+
+        # Number of amplifiers (could pull from DetectorPar but this avoids needing the spectrograph, e.g. view_fits)
+        numamp = 4
+
+        # get the x and y binning factors...
+        xbin, ybin = head['CCDXBIN'], head['CCDYBIN']
+
+        datasize = head['DETSIZE'] # Unbinned size of detector full array
+        _, nx_full, _, ny_full = np.array(parse.load_sections(datasize, fmt_iraf=False)).flatten()
+
+        # Determine the size of the output array...
+        nx, ny = int(nx_full / xbin), int(ny_full / ybin)
+        nbias1 = 48
+        nbias2 = 8240
+
+        # allocate output array...
+        array = hdu[0].data.T * 1.0 ## Convert to float in order to get it processed with procimg.py
+        rawdatasec_img = np.zeros_like(array, dtype=int)
+        oscansec_img = np.zeros_like(array, dtype=int)
+
+        ## allocate datasec and oscansec to the image
+        # apm 1
+        rawdatasec_img[int(nbias1/xbin):int(nx/2), :int(ny/2)] = 1
+        oscansec_img[1:int(nbias1/xbin), :int(ny/2)] = 1 # exclude the first pixel since it always has problem
+
+        # apm 2
+        rawdatasec_img[int(nx/2):int(nbias2/xbin), :int(ny/2)] = 2
+        oscansec_img[int(nbias2/xbin):nx-1, :int(ny/2)] = 2 # exclude the last pixel since it always has problem
+
+        # apm 3
+        rawdatasec_img[int(nbias1/xbin):int(nx/2), int(ny/2):] = 3
+        oscansec_img[1:int(nbias1/xbin), int(ny/2):] = 3 # exclude the first pixel since it always has problem
+
+        # apm 4
+        rawdatasec_img[int(nx/2):int(nbias2/xbin), int(ny/2):] = 4
+        oscansec_img[int(nbias2/xbin):nx-1, int(ny/2):] = 4 # exclude the last pixel since it always has problem
+
+        # Need the exposure time
+        exptime = hdu[self.meta['exptime']['ext']].header[self.meta['exptime']['card']]
+        # Return, transposing array back to orient the overscan properly
+        return np.flipud(array), hdu, exptime, np.flipud(rawdatasec_img), np.flipud(oscansec_img)
+
 
 class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
     """
@@ -142,8 +211,8 @@ class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
                 # Detector 1
                 pypeitpar.DetectorPar(
                             dataext         = 0,
-                            specaxis        = 1,
-                            specflip        = True,
+                            specaxis        = 0,
+                            specflip        = False,
                             xgap            = 0.,
                             ygap            = 0.,
                             ysize           = 1.,
@@ -151,11 +220,11 @@ class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
                             darkcurr        = 0.4,
                             saturation      = 65535.,
                             nonlinear       = 0.99,
-                            numamplifiers   = 1,
-                            gain            = 2.5,
-                            ronoise         = 4.2,
-                            datasec='[:,:]', #'[:, 49:8240]',
-                            oscansec='[:,:]', #'[:, 8240:]',
+                            numamplifiers   = 4,
+                            gain            = [2.38,2.50,2.46,2.81],
+                            ronoise         = [3.78,4.04,4.74,4.14],
+                            #datasec         = '[:, 49:8240]',
+                            #oscansec        = '[:, 8240:]',
                             suffix          = '_mods1r'
                             )]
         self.numhead = 1
@@ -193,7 +262,7 @@ class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
         #par['calibrations']['wavelengths']['method'] = 'reidentify'
         #par['calibrations']['wavelengths']['reid_arxiv'] = 'shane_kast_blue_600_4310_d55.json'
 
-        par['calibrations']['biasframe']['useframe'] = 'bias'
+        #par['calibrations']['biasframe']['useframe'] = 'bias'
 
 
         return par
@@ -269,8 +338,8 @@ class LBTMODS1BSpectrograph(LBTMODSSpectrograph):
                 # Detector 1
                 pypeitpar.DetectorPar(
                             dataext         = 0,
-                            specaxis        = 1,
-                            specflip        = True,
+                            specaxis        = 0,
+                            specflip        = False,
                             xgap            = 0.,
                             ygap            = 0.,
                             ysize           = 1.,
@@ -278,11 +347,9 @@ class LBTMODS1BSpectrograph(LBTMODSSpectrograph):
                             darkcurr        = 0.5,
                             saturation      = 65535.,
                             nonlinear       = 0.99,
-                            numamplifiers   = 1,
-                            gain            = 2.1,
-                            ronoise         = 3.0,
-                            datasec='[:,:]', #'[:, 49:8240]',
-                            oscansec='[:,:]', #'[:, 8240:]',
+                            numamplifiers   = 4,
+                            gain            = [2.55,1.91,2.09,2.02],
+                            ronoise         = [3.41,2.93,2.92,2.76],
                             suffix          = '_mods1b'
                             )]
         self.numhead = 1
@@ -315,7 +382,7 @@ class LBTMODS1BSpectrograph(LBTMODSSpectrograph):
         #par['calibrations']['wavelengths']['method'] = 'reidentify'
         #par['calibrations']['wavelengths']['reid_arxiv'] = 'shane_kast_blue_600_4310_d55.json'
 
-        par['calibrations']['biasframe']['useframe'] = 'bias'
+        #par['calibrations']['biasframe']['useframe'] = 'bias'
 
 
         return par
@@ -388,8 +455,8 @@ class LBTMODS2RSpectrograph(LBTMODSSpectrograph):
                 # Detector 1
                 pypeitpar.DetectorPar(
                             dataext         = 0,
-                            specaxis        = 1,
-                            specflip        = True,
+                            specaxis        = 0,
+                            specflip        = False,
                             xgap            = 0.,
                             ygap            = 0.,
                             ysize           = 1.,
@@ -397,12 +464,9 @@ class LBTMODS2RSpectrograph(LBTMODSSpectrograph):
                             darkcurr        = 0.4,
                             saturation      = 65535.,
                             nonlinear       = 0.99,
-                            numamplifiers   = 1,
-                            gain            = 1.7,
-                            ronoise         = 2.8,
-                            datasec='[:,:]', #'[:, 49:8240]',
-                            oscansec='[:,:]', #'[:, 30:45]',
-                            #oscansec='[:, 8240:]',
+                            numamplifiers   = 4,
+                            gain            = [1.70,1.67,1.66,1.66],
+                            ronoise         = [2.95,2.65,2.78,2.87],
                             suffix          = '_mods2r'
                             )]
         self.numhead = 1
@@ -440,7 +504,7 @@ class LBTMODS2RSpectrograph(LBTMODSSpectrograph):
         #par['calibrations']['wavelengths']['method'] = 'reidentify'
         #par['calibrations']['wavelengths']['reid_arxiv'] = 'shane_kast_blue_600_4310_d55.json'
 
-        par['calibrations']['biasframe']['useframe'] = 'bias'
+        #par['calibrations']['biasframe']['useframe'] = 'bias'
 
 
         return par
@@ -515,8 +579,8 @@ class LBTMODS2BSpectrograph(LBTMODSSpectrograph):
                 # Detector 1
                 pypeitpar.DetectorPar(
                             dataext         = 0,
-                            specaxis        = 1,
-                            specflip        = True,
+                            specaxis        = 0,
+                            specflip        = False,
                             xgap            = 0.,
                             ygap            = 0.,
                             ysize           = 1.,
@@ -524,11 +588,9 @@ class LBTMODS2BSpectrograph(LBTMODSSpectrograph):
                             darkcurr        = 0.5,
                             saturation      = 65535.,
                             nonlinear       = 0.99,
-                            numamplifiers   = 1,
-                            gain            = 2.0,
-                            ronoise         = 3.7,
-                            datasec='[:,:]', #'[:, 49:8240]',
-                            oscansec='[:,:]', #'[:, 8240:]',
+                            numamplifiers   = 4,
+                            gain            = [1.99,2.06,1.96,2.01],
+                            ronoise         = [3.66,3.62,3.72,3.64],
                             suffix          = '_mods2b'
                             )]
         self.numhead = 1
@@ -561,7 +623,7 @@ class LBTMODS2BSpectrograph(LBTMODSSpectrograph):
         #par['calibrations']['wavelengths']['method'] = 'reidentify'
         #par['calibrations']['wavelengths']['reid_arxiv'] = 'shane_kast_blue_600_4310_d55.json'
 
-        par['calibrations']['biasframe']['useframe'] = 'bias'
+        #par['calibrations']['biasframe']['useframe'] = 'bias'
 
 
         return par
