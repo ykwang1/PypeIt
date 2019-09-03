@@ -401,7 +401,7 @@ def apply_sensfunc_spec(wave, counts, ivar, sensfunc, airmass, exptime, mask=Non
     # debug
     if debug:
         wave_mask = wave > 1.0
-        fig = plt.figure(figsize=(12, 8))
+        plt.figure(figsize=(12, 8))
         ymin, ymax = coadd1d.get_ylim(flam, flam_ivar, outmask)
         plt.plot(wave[wave_mask], flam[wave_mask], color='black', drawstyle='steps-mid', zorder=1, alpha=0.8)
         plt.plot(wave[wave_mask], np.sqrt(utils.calc_ivar(flam_ivar[wave_mask])), zorder=2, color='red', alpha=0.7,
@@ -415,17 +415,12 @@ def apply_sensfunc_spec(wave, counts, ivar, sensfunc, airmass, exptime, mask=Non
     return flam, flam_ivar, outmask
 
 def apply_sensfunc_specobjs(specobjs, sens_meta, sens_table, airmass, exptime, extinct_correct=True, tell_correct=False,
-                            longitude=None, latitude=None, debug=False, show=False):
+                            longitude=None, latitude=None, debug=False):
 
     # TODO This function should operate on a single object
     func = sens_meta['FUNC'][0]
     polyorder_vec = sens_meta['POLYORDER_VEC'][0]
     nimgs = len(specobjs) # total number of spectra in this specobjs (i.e. norder*nobj or <=nobj*ndetector)
-
-    if show:
-        fig = plt.figure(figsize=(12, 8))
-        xmin, xmax = [], []
-        ymin, ymax = [], []
 
     for ispec in range(nimgs):
         # get the ECH_ORDER, ECH_ORDERINDX, WAVELENGTH from your science
@@ -520,36 +515,6 @@ def apply_sensfunc_specobjs(specobjs, sens_meta, sens_table, airmass, exptime, e
             extract['FLAM_SIG'] = flam_sig
             extract['FLAM_IVAR'] = flam_ivar
 
-            if show:
-                xmin_ispec = wave[wave_mask].min()
-                xmax_ispec = wave[wave_mask].max()
-                xmin.append(xmin_ispec)
-                xmax.append(xmax_ispec)
-                ymin_ispec, ymax_ispec = coadd1d.get_ylim(flam, flam_ivar, outmask)
-                ymin.append(ymin_ispec)
-                ymax.append(ymax_ispec)
-
-                med_width = (2.0 * np.ceil(0.1 / 10.0 * np.size(wave[outmask])) + 1).astype(int)
-                flam_med, flam_ivar_med = coadd1d.median_filt_spec(flam, flam_ivar, outmask, med_width)
-                if extract_type == 'boxcar':
-                    plt.plot(wave[wave_mask], flam_med[wave_mask], color='black', drawstyle='steps-mid', zorder=1, alpha=0.8)
-                    #plt.plot(wave[wave_mask], np.sqrt(utils.calc_ivar(flam_ivar_med[wave_mask])), zorder=2, color='m',
-                    #         alpha=0.7, drawstyle='steps-mid', linestyle=':')
-                else:
-                    plt.plot(wave[wave_mask], flam_med[wave_mask], color='dodgerblue', drawstyle='steps-mid', zorder=1, alpha=0.8)
-                    #plt.plot(wave[wave_mask], np.sqrt(utils.calc_ivar(flam_ivar_med[wave_mask])), zorder=2, color='red',
-                    #         alpha=0.7, drawstyle='steps-mid', linestyle=':')
-    if show:
-        xmin_final, xmax_final = np.min(xmin), np.max(xmax)
-        ymax_final = 1.3*np.median(ymax)
-        ymin_final = -0.15*ymax_final
-        plt.xlim([xmin_final, xmax_final])
-        plt.ylim([ymin_final, ymax_final])
-        plt.title('Blue is Optimal extraction and Black is Boxcar extraction',fontsize=16)
-        plt.xlabel('Wavelength (Angstrom)')
-        plt.ylabel('Flux')
-        plt.show()
-
 def apply_sensfunc(fnames, sensfile, extinct_correct=True, tell_correct=False, debug=False, show=False):
 
     sens_meta = Table.read(sensfile, 1)
@@ -566,7 +531,7 @@ def apply_sensfunc(fnames, sensfile, extinct_correct=True, tell_correct=False, d
 
         apply_sensfunc_specobjs(sobjs, sens_meta, sens_table, airmass, exptime, extinct_correct=extinct_correct,
                                 tell_correct=tell_correct, longitude=longitude, latitude=latitude,
-                                debug=debug, show=show)
+                                debug=debug)
         #outfile = spec1dfile[:-5] + '_flux.fits'
         save.save_1d_spectra_fits(sobjs, head, spectrograph, spec1dfile, helio_dict=None, overwrite=True)
 
