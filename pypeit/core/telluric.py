@@ -960,7 +960,7 @@ def mask_star_lines(wave_star, mask_width=10.0):
     return mask_star
 
 def sensfunc_telluric(spec1dfile, telgridfile, outfile, star_type=None, star_mag=None, star_ra=None, star_dec=None,
-                      polyorder=13, mask_abs_lines=True, delta_coeff_bounds=(-20.0, 20.0), minmax_coeff_bounds=(-5.0, 5.0),
+                      polyorder=8, mask_abs_lines=True, delta_coeff_bounds=(-20.0, 20.0), minmax_coeff_bounds=(-5.0, 5.0),
                       sn_clip=30.0, only_orders=None, tol=1e-3, popsize=30, recombination=0.7, polish=True, disp=True,
                       debug_init=False, debug=False):
 
