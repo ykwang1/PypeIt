@@ -43,6 +43,8 @@ def parser(options=None):
 #                        action = "store_true")
     parser.add_argument('--showmask', default=False, help="Overplot masked pixels",
                         action = "store_true")
+    parser.add_argument('--showtrace', default=True, help="Overplot masked pixels",
+                        action = "store_false")
     parser.add_argument('--embed', default=False, help="Upong completetion embed in ipython shell",
                         action = "store_true")
 
@@ -173,7 +175,8 @@ def main(args):
     # TODO: JFH For some reason Ginga crashes when I try to put cuts in here.
     viewer, ch = ginga.show_image(image, chname=chname_skysub, waveimg=waveimg,
                                   bitmask=mask_in) #, cuts=(cut_min, cut_max),wcs_match=True)
-    show_trace(hdulist_1d, det_nm, viewer, ch)
+    if args.showtrace:
+        show_trace(hdulist_1d, det_nm, viewer, ch)
     ginga.show_slits(viewer, ch, tslits_dict['slit_left'], tslits_dict['slit_righ'], slit_ids)
                     #, args.det)
 
@@ -182,7 +185,8 @@ def main(args):
     image = (sciimg - skymodel) * np.sqrt(ivarmodel) * (mask == 0)  # sky residual map
     viewer, ch = ginga.show_image(image, chname_skyresids, waveimg=waveimg,
                                   cuts=(-5.0, 5.0), bitmask = mask_in) #,wcs_match=True)
-    show_trace(hdulist_1d, det_nm, viewer, ch)
+    if args.showtrace:
+        show_trace(hdulist_1d, det_nm, viewer, ch)
     ginga.show_slits(viewer, ch, tslits_dict['slit_left'], tslits_dict['slit_righ'], slit_ids)
                     #, args.det)
 
@@ -192,7 +196,8 @@ def main(args):
     image = (sciimg - skymodel - objmodel) * np.sqrt(ivarmodel) * (mask == 0)
     viewer, ch = ginga.show_image(image, chname=chname_resids, waveimg=waveimg,
                                   cuts = (-5.0, 5.0), bitmask = mask_in) #,wcs_match=True)
-    show_trace(hdulist_1d, det_nm, viewer, ch)
+    if args.showtrace:
+        show_trace(hdulist_1d, det_nm, viewer, ch)
     ginga.show_slits(viewer, ch, tslits_dict['slit_left'], tslits_dict['slit_righ'], slit_ids)
                     #, args.det)
 
