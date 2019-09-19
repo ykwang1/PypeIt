@@ -36,6 +36,7 @@
 - Added code to allow for IVAR and RN2 image generation for calibs
 - Added several from_master_file() instantiation methods
 - Use coadd2d.weighted_combine() to stack calibration images
+- Begins integration of SPIT into PypeIt
 
 0.11.0 (22 Jun 2019)
 --------------------
