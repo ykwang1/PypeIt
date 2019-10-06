@@ -62,8 +62,8 @@ def main(args):
     # RAW_GEMINI??
     elif 'gemini_gmos' in args.spectrograph:
         # TODO this routine should show the whole mosaic if no detector number is passed in!
-        # Need to figure out the number of amps
-        img, _, _ = gemini_gmos.read_gmos(args.file, det=args.det)
+        gen_gmos = gemini_gmos.GeminiGMOSSpectrograph()
+        img, _, _, _, _ = gen_gmos.get_rawimage(args.file, det=args.det)
     elif 'mmt_binospec' in args.spectrograph:
         gen_binospec = mmt_binospec.MMTBINOSPECSpectrograph()
         img, _, _, _, _ = gen_binospec.get_rawimage(args.file, det=args.det)
