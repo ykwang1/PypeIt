@@ -1495,11 +1495,15 @@ class HolyGrail:
             if slit not in self._ok_mask:
                 continue
             # TODO Pass in all the possible params for detect_lines to arc_lines_from_spec, and update the parset
+            if np.size(self._sigdetect)==1:
+                sigdetect_slit = self._sigdetect
+            elif np.size(self._sigdetect)==self._nslit:
+                sigdetect_slit = self._sigdetect[slit]
             # Detect lines, and decide which tcent to use
             self._all_tcent, self._all_ecent, self._cut_tcent, self._icut, _  =\
-                wvutils.arc_lines_from_spec(self._spec[:, slit].copy(), sigdetect=self._sigdetect, nonlinear_counts = self._nonlinear_counts)
+                wvutils.arc_lines_from_spec(self._spec[:, slit].copy(), sigdetect=sigdetect_slit, nonlinear_counts = self._nonlinear_counts)
             self._all_tcent_weak, self._all_ecent_weak, self._cut_tcent_weak, self._icut_weak, _  =\
-                wvutils.arc_lines_from_spec(self._spec[:, slit].copy(), sigdetect=self._sigdetect, nonlinear_counts = self._nonlinear_counts)
+                wvutils.arc_lines_from_spec(self._spec[:, slit].copy(), sigdetect=sigdetect_slit, nonlinear_counts = self._nonlinear_counts)
 
             # Were there enough lines?  This mainly deals with junk slits
             if self._all_tcent.size < min_nlines:
@@ -1598,11 +1602,16 @@ class HolyGrail:
         for slit in range(self._nslit):
             if slit not in self._ok_mask:
                 continue
+
+            if np.size(self._sigdetect)==1:
+                sigdetect_slit = self._sigdetect
+            elif np.size(self._sigdetect)==self._nslit:
+                sigdetect_slit = self._sigdetect[slit]
             # Detect lines, and decide which tcent to use
             self._all_tcent, self._all_ecent, self._cut_tcent, self._icut, _ =\
-                wvutils.arc_lines_from_spec(self._spec[:, slit], sigdetect=self._sigdetect, nonlinear_counts = self._nonlinear_counts)
+                wvutils.arc_lines_from_spec(self._spec[:, slit], sigdetect=sigdetect_slit, nonlinear_counts = self._nonlinear_counts)
             self._all_tcent_weak, self._all_ecent_weak, self._cut_tcent_weak, self._icut_weak, _ =\
-                wvutils.arc_lines_from_spec(self._spec[:, slit], sigdetect=self._sigdetect, nonlinear_counts = self._nonlinear_counts)
+                wvutils.arc_lines_from_spec(self._spec[:, slit], sigdetect=sigdetect_slit, nonlinear_counts = self._nonlinear_counts)
             if self._all_tcent.size == 0:
                 msgs.warn("No lines to identify in slit {0:d}!".format(slit+ 1))
                 continue

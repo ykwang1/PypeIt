@@ -10,7 +10,6 @@ from pypeit.core import framematch
 from pypeit.par import pypeitpar
 from pypeit.spectrographs import spectrograph
 from pypeit.core import pixels
-from pypeit import debugger
 
 class MagellanFIRESpectrograph(spectrograph.Spectrograph):
     """
@@ -40,9 +39,9 @@ class MagellanFIRESpectrograph(spectrograph.Spectrograph):
                             xgap            = 0.,
                             ygap            = 0.,
                             ysize           = 1.,
-                            platescale      = 0.15,
+                            platescale      = 0.18,
                             darkcurr        = 0.01,
-                            saturation      = 20000., # high gain mode, low gain is 32000
+                            saturation      = 32000., # high gain is 20000., low gain is 32000
                             nonlinear       = 1.0, # high gain mode, low gain is 0.875
                             numamplifiers   = 1,
                             gain            = 1.2, # high gain mode, low gain is 3.8 e-/DN
@@ -50,10 +49,6 @@ class MagellanFIRESpectrograph(spectrograph.Spectrograph):
                             datasec         = '[1:2048,1:2048]',
                             oscansec        = '[:,:4]'
                             )]
-        self.norders = 22
-        # Uses default timeunit
-        # Uses default primary_hdrext
-        # self.sky_file = ?
 
     @property
     def pypeline(self):
@@ -73,13 +68,17 @@ class MagellanFIRESpectrograph(spectrograph.Spectrograph):
         par['calibrations']['pixelflatframe']['number'] = 5
         par['calibrations']['traceframe']['number'] = 5
         par['calibrations']['arcframe']['number'] = 1
-        # Bias
-        par['calibrations']['biasframe']['useframe'] = 'overscan'
+        # No overscan
+        for key in par['calibrations'].keys():
+            if 'frame' in key:
+                par['calibrations'][key]['process']['overscan'] = 'none'
         # Wavelengths
         # 1D wavelength solution
-        par['calibrations']['wavelengths']['rms_threshold'] = 0.20  # Might be grating dependent..
-        par['calibrations']['wavelengths']['sigdetect']=5.0
-        par['calibrations']['wavelengths']['lamps'] = ['OH_XSHOOTER']
+        par['calibrations']['wavelengths']['rms_threshold'] = 0.25  # Might be grating dependent..
+        par['calibrations']['wavelengths']['sigdetect']=[30,10,10,10,35,30,30,40,10,50,45,50,50,50,30,30,30,10,20,30,10]
+        par['calibrations']['wavelengths']['n_first']=2
+        par['calibrations']['wavelengths']['n_final']=4
+        par['calibrations']['wavelengths']['lamps'] = ['OH_FIRE_Echelle']
         par['calibrations']['wavelengths']['nonlinear_counts'] = self.detector[0]['nonlinear'] * self.detector[0]['saturation']
 
         # Reidentification parameters
@@ -99,9 +98,9 @@ class MagellanFIRESpectrograph(spectrograph.Spectrograph):
 
         # Set slits and tilts parameters
 #        par['calibrations']['tilts']['order'] = 2
-        par['calibrations']['tilts']['tracethresh'] = [10, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 10]
+        par['calibrations']['tilts']['tracethresh'] = 5
         par['calibrations']['slits']['trace_npoly'] = 5
-        par['calibrations']['slits']['sigdetect'] = 50
+        par['calibrations']['slits']['sigdetect'] = 10
         par['calibrations']['slits']['maxshift'] = 0.5
 #        par['calibrations']['slits']['pcatype'] = 'pixel'
         # Scienceimage default parameters
@@ -127,26 +126,31 @@ class MagellanFIRESpectrograph(spectrograph.Spectrograph):
             self.meta: dict (generated in place)
 
         """
-        self.meta = {}
+        meta = {}
         # Required (core)
-        self.meta['ra'] = dict(ext=0, card='RA')
-        self.meta['dec'] = dict(ext=0, card='DEC')
-        self.meta['target'] = dict(ext=0, card='OBJECT')
-        #TODO: Check decker is correct
-        self.meta['decker'] = dict(ext=0, card='SLIT')
-        self.meta['binning'] = dict(ext=0, card=None, default='1,1')
-        self.meta['mjd'] = dict(ext=0, card=None, compound=True)
-        self.meta['exptime'] = dict(ext=0, card='EXPTIME')
-        self.meta['airmass'] = dict(ext=0, card='AIRMASS')
-        # Extras for config and frametyping
-        self.meta['dispname'] = dict(ext=0, card='INSTR')
+        meta['ra'] = dict(ext=0, card='RA')
+        meta['dec'] = dict(ext=0, card='DEC')
+        meta['target'] = dict(ext=0, card='OBJECT')
+        meta['decker'] = dict(ext=0, card=None, default='default')
+        meta['dichroic'] = dict(ext=0, card=None, default='default')
+        meta['binning'] = dict(ext=0, card=None, default='1,1')
 
-    def compound_meta(self, headarr, meta_key):
-        if meta_key == 'mjd':
-            time = headarr[0]['DATE']
-            ttime = Time(time, format='isot')
-            return ttime.mjd
-        msgs.error("Not ready for this compound meta")
+        meta['mjd'] = dict(ext=0, card='ACQTIME')
+        meta['exptime'] = dict(ext=0, card='EXPTIME')
+        meta['airmass'] = dict(ext=0, card='AIRMASS')
+        # Extras for config and frametyping
+        meta['dispname'] = dict(ext=0, card='GRISM')
+        meta['idname'] = dict(ext=0, card='OBSTYPE')
+
+        # Ingest
+        self.meta = meta
+
+#    def compound_meta(self, headarr, meta_key):
+#        if meta_key == 'mjd':
+#            time = headarr[0]['DATE']
+#            ttime = Time(time, format='isot')
+#            return ttime.mjd
+#        msgs.error("Not ready for this compound meta")
 
     def check_frame_type(self, ftype, fitstbl, exprng=None):
         """
@@ -167,7 +171,7 @@ class MagellanFIRESpectrograph(spectrograph.Spectrograph):
         msgs.warn('Cannot determine if frames are of type {0}.'.format(ftype))
         return np.zeros(len(fitstbl), dtype=bool)
 
-    def bpm(self, shape=None, filename=None, det=None, **null_kwargs):
+    def bpm(self, filename, det, shape=None):
         """
         Override parent bpm function with BPM specific to X-Shooter VIS.
 
@@ -186,98 +190,64 @@ class MagellanFIRESpectrograph(spectrograph.Spectrograph):
           0 = ok; 1 = Mask
 
         """
-        msgs.info("Custom bad pixel mask for FIRE")
-        self.empty_bpm(shape=shape, filename=filename, det=det)
-        if det == 1:
-            self.bpm_img[:, :4] = 1.
+        msgs.info("Custom bad pixel mask for NIRES")
+        bpm_img = self.empty_bpm(filename, det, shape=shape)
 
-        return self.bpm_img
+        return bpm_img
 
-    @staticmethod
-    def slitmask(tslits_dict, pad=None, binning=None):
+    @property
+    def norders(self):
+        return 21
+
+    @property
+    def order_spat_pos(self):
+        ord_spat_pos = np.array([0.06054688, 0.14160156, 0.17089844, 0.22753906, 0.27539062,
+                                 0.32128906, 0.36474609, 0.40673828, 0.45019531, 0.48974609,
+                                 0.52978516, 0.56054688, 0.59814453, 0.63378906, 0.66503906,
+                                 0.70019531, 0.7421875 , 0.77978516, 0.82763672, 0.87109375,
+                                 0.9296875])
+        return ord_spat_pos
+
+    @property
+    def orders(self):
+        return np.arange(31, 10, -1, dtype=int)
+
+
+    @property
+    def spec_min_max(self):
+        #spec_max = np.asarray([np.inf]*self.norders)
+        #spec_min = np.asarray([-np.inf]*self.norders)
+        spec_max = np.asarray([2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,
+                               2048,2048,2048,2048,2048])
+        spec_min = np.asarray([ 500,   0,   0,   0,   0,   0,   0,    0,   0,   0,  0,   0,   0,   0,   0,   0,
+                                  0,   0,   0,   0,   0])
+        return np.vstack((spec_min, spec_max))
+
+    def order_platescale(self, order_vec, binning=None):
         """
-         Generic routine ton construct a slitmask image from a tslits_dict. Children of this class can
-         overload this function to implement instrument specific slitmask behavior, for example setting
-         where the orders on an echelle spectrograph end
+        FIRE has no binning
 
-         Parameters
-         -----------
-         tslits_dict: dict
-            Trace slits dictionary with slit boundary information
+        Args:
+            order_vec (np.ndarray):
+            binning (optional):
 
-         Optional Parameters
-         pad: int or float
-            Padding of the slit boundaries
-         binning: tuple
-            Spectrograph binning in spectral and spatial directions
-
-         Returns
-         -------
-         slitmask: ndarray int
-            Image with -1 where there are no slits/orders, and an integer where there are slits/order with the integer
-            indicating the slit number going from 0 to nslit-1 from left to right.
-
-         """
-
-        # These lines are always the same
-        pad = tslits_dict['pad'] if pad is None else pad
-        slitmask = pixels.slit_pixels(tslits_dict['lcen'], tslits_dict['rcen'], tslits_dict['nspat'], pad=pad)
-
-        spec_img = np.outer(np.arange(tslits_dict['nspec'], dtype=int), np.ones(tslits_dict['nspat'], dtype=int))  # spectral position everywhere along image
-
-        order7bad = (slitmask == 0) & (spec_img < tslits_dict['nspec']/2)
-        slitmask[order7bad] = -1
-        return slitmask
-
-    @staticmethod
-    def slit2order(islit):
+        Returns:
+            np.ndarray:
 
         """
-        Parameters
-        ----------
-        islit: int, float, or string, slit number
-
-        Returns
-        -------
-        order: int
-        """
-
-        if isinstance(islit, str):
-            islit = int(islit)
-        elif isinstance(islit, np.ndarray):
-            islit = islit.astype(int)
-        elif isinstance(islit, float):
-            islit = int(islit)
-        elif isinstance(islit, int):
-            pass
-        else:
-            msgs.error('Unrecognized type for islit')
-
-        orders = np.arange(32, 11, -1, dtype=int)
-        return orders[islit]
-
-    @staticmethod
-    def order_platescale(binning = None):
+        norders = order_vec.size
+        return np.full(norders, 0.15)
 
 
-        """
-        Returns the plate scale in arcseconds for each order
+    @property
+    def dloglam(self):
+        # This number was determined using the resolution and sampling quoted on the FIRE website
+        R = 6000.0 * 2.7
+        dloglam = 1.0 / R / np.log(10.0)
+        return dloglam
 
-        Parameters
-        ----------
-        None
+    @property
+    def loglam_minmax(self):
+        return np.log10(7500.0), np.log10(25700)
 
-        Optional Parameters
-        --------------------
-        binning: str
-
-        Returns
-        -------
-        order_platescale: ndarray, float
-
-        """
-
-        # FIRE has no binning, but for an instrument with binning we would do this
-        #binspatial, binspectral = parse.parse_binning(binning)
-        return np.full(5, 0.15)
 
