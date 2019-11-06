@@ -74,16 +74,16 @@ class MagellanFIRESpectrograph(spectrograph.Spectrograph):
                 par['calibrations'][key]['process']['overscan'] = 'none'
         # Wavelengths
         # 1D wavelength solution
-        par['calibrations']['wavelengths']['rms_threshold'] = 0.25  # Might be grating dependent..
-        par['calibrations']['wavelengths']['sigdetect']=[30,10,10,10,35,30,30,40,10,50,45,50,50,50,30,30,30,10,20,30,10]
+        par['calibrations']['wavelengths']['rms_threshold'] = 0.23  # Might be grating dependent..
+        par['calibrations']['wavelengths']['sigdetect']=[30,20,10,10,5,20,30,40,70,80,58,65,50,50,30,30,30,10,20,30,15]
         par['calibrations']['wavelengths']['n_first']=2
         par['calibrations']['wavelengths']['n_final']=4
         par['calibrations']['wavelengths']['lamps'] = ['OH_FIRE_Echelle']
         par['calibrations']['wavelengths']['nonlinear_counts'] = self.detector[0]['nonlinear'] * self.detector[0]['saturation']
 
         # Reidentification parameters
-        #par['calibrations']['wavelengths']['method'] = 'reidentify'
-        #par['calibrations']['wavelengths']['reid_arxiv'] = 'magellan_fire.json'
+        par['calibrations']['wavelengths']['method'] = 'reidentify'
+        par['calibrations']['wavelengths']['reid_arxiv'] = 'magellan_fire_echelle.fits'
         par['calibrations']['wavelengths']['ech_fix_format'] = True
         # Echelle parameters
         par['calibrations']['wavelengths']['echelle'] = True

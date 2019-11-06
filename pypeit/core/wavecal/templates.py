@@ -534,6 +534,36 @@ def main(flg):
                        outroot, lowredux=False, ifiles=ifiles, chk=True,
                        normalize=True)
 
+    ### FIRE
+    if flg & (2**21):  # Magellan/FIRE
+        from IPython import embed
+        embed()
+        # Load
+        mase_path = os.path.join(os.getenv('FIRE_DIR'), 'Arcs')
+        sav_file = os.path.join(mase_path, 'OH_guess_v5.idl')
+        mase_dict = readsav(sav_file)
+        mase_sol = Table(mase_dict['all_arcfit'])
+        # Do it
+        all_wave = np.zeros((2048, 21))
+        all_flux = np.zeros_like(all_wave)
+        for order in np.arange(21):
+            all_flux[:,order] = mase_dict['sv_aspec'][order]
+            # Build the wavelengths
+            wv_air = cheby_val(mase_sol['FFIT'][order], np.arange(2048), mase_sol['NRM'][order],
+                                         mase_sol['NORD'][order])
+            all_wave[:,order] = airtovac(wv_air * units.AA).value
+        # Write
+        tbl = Table()
+        tbl['wave'] = all_wave.T
+        tbl['flux'] = all_flux.T
+        tbl['order'] = np.arange(31, 10, -1, dtype=int)
+        tbl.meta['BINSPEC'] = 1
+        # Write
+        outroot='magellan_fire_echelle.fits'
+        outfile = os.path.join(template_path, outroot)
+        tbl.write(outfile, overwrite=True)
+        print("Wrote: {}".format(outfile))
+
 # Command line execution
 if __name__ == '__main__':
     flg = 0
@@ -578,7 +608,9 @@ if __name__ == '__main__':
 
     # Gemini/GMOS
     #flg += 2**19  # Hamamatsu Convert JSON to FITS
-    flg += 2**20  # E2V Convert JSON to FITS
+    #flg += 2**20  # E2V Convert JSON to FITS
+
+    flg += 2**21  # E2V Convert JSON to FITS
 
     main(flg)
 
