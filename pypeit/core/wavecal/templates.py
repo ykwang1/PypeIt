@@ -536,11 +536,12 @@ def main(flg):
 
     ### FIRE
     if flg & (2**21):  # Magellan/FIRE
-        from IPython import embed
-        embed()
         # Load
         mase_path = os.path.join(os.getenv('FIRE_DIR'), 'Arcs')
         sav_file = os.path.join(mase_path, 'OH_guess_v5.idl')
+        #sav_file = os.path.join(mase_path, 'OH_guess_v2.idl')
+        #mase_path = os.path.join(os.getenv('FIRE_DIR'), 'Calib')
+        #sav_file = os.path.join(mase_path, 'fire_wvguess2.idl')
         mase_dict = readsav(sav_file)
         mase_sol = Table(mase_dict['all_arcfit'])
         # Do it
@@ -610,7 +611,7 @@ if __name__ == '__main__':
     #flg += 2**19  # Hamamatsu Convert JSON to FITS
     #flg += 2**20  # E2V Convert JSON to FITS
 
-    flg += 2**21  # E2V Convert JSON to FITS
+    #flg += 2**21  # E2V Convert JSON to FITS
 
     main(flg)
 
