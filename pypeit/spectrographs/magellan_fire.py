@@ -2,14 +2,11 @@
 """
 import numpy as np
 
-from astropy.time import Time
-
 from pypeit import msgs
 from pypeit import telescopes
 from pypeit.core import framematch
 from pypeit.par import pypeitpar
 from pypeit.spectrographs import spectrograph
-from pypeit.core import pixels
 
 class MagellanFIRESpectrograph(spectrograph.Spectrograph):
     """
@@ -56,8 +53,6 @@ class MagellanFIRESpectrograph(spectrograph.Spectrograph):
     def pypeline(self):
         return 'Echelle'
 
-    # TODO: Remove dependency on self.  Non-linear counts does not need
-    # to be a parameter.
     def default_pypeit_par(self):
         """
         Set default parameters for Shane Kast Blue reductions.
@@ -147,13 +142,6 @@ class MagellanFIRESpectrograph(spectrograph.Spectrograph):
         # Ingest
         self.meta = meta
 
-#    def compound_meta(self, headarr, meta_key):
-#        if meta_key == 'mjd':
-#            time = headarr[0]['DATE']
-#            ttime = Time(time, format='isot')
-#            return ttime.mjd
-#        msgs.error("Not ready for this compound meta")
-
     def check_frame_type(self, ftype, fitstbl, exprng=None):
         """
         Check for frames of the provided type.
@@ -223,8 +211,6 @@ class MagellanFIRESpectrograph(spectrograph.Spectrograph):
 
     @property
     def spec_min_max(self):
-        #spec_max = np.asarray([np.inf]*self.norders)
-        #spec_min = np.asarray([-np.inf]*self.norders)
         spec_max = np.asarray([2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,
                                2048,2048,2048,2048,2048])
         spec_min = np.asarray([ 500,   0,   0,   0,   0,   0,   0,    0,   0,   0,  0,   0,   0,   0,   0,   0,
