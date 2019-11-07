@@ -46,8 +46,10 @@ class MagellanFIRESpectrograph(spectrograph.Spectrograph):
                             numamplifiers   = 1,
                             gain            = 1.2, # high gain mode, low gain is 3.8 e-/DN
                             ronoise         = 5.0, # for high gain mode and SUTR read modes with exptime ~ 900s
-                            datasec         = '[1:2048,1:2048]',
-                            oscansec        = '[:,:4]'
+                            datasec         = '[5:2044,5:2044]',
+                            oscansec        = '[5:2044,:5]'
+                            #datasec         = '[:,:]',
+                            #oscansec        = '[:,:]'
                             )]
 
     @property
@@ -73,22 +75,24 @@ class MagellanFIRESpectrograph(spectrograph.Spectrograph):
             if 'frame' in key:
                 par['calibrations'][key]['process']['overscan'] = 'none'
         # Wavelengths
-        # 1D wavelength solution
-        par['calibrations']['wavelengths']['rms_threshold'] = 0.25
-        #par['calibrations']['wavelengths']['sigdetect']=[5,20,10,10,10,20,30,40,70,80,58,65,50,50,30,30,30,10,20,30,10]
-        par['calibrations']['wavelengths']['sigdetect']=10
+        # 1D wavelength solution with OH lines
+        par['calibrations']['wavelengths']['rms_threshold'] = 3.0
+        par['calibrations']['wavelengths']['sigdetect']=[5,10,10,10,10,20,30,40,70,80,58,65,60,60,60,30,30,10,20,30,10]
         par['calibrations']['wavelengths']['n_first']=2
-        par['calibrations']['wavelengths']['n_final']=[2,3,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4]
-        #par['calibrations']['wavelengths']['n_final']=4
+        par['calibrations']['wavelengths']['n_final']=[2,2,2,2,4,4,4,4,4,4,4,4,4,6,6,4,4,4,4,4,4]
         par['calibrations']['wavelengths']['lamps'] = ['OH_FIRE_Echelle']
         par['calibrations']['wavelengths']['nonlinear_counts'] = self.detector[0]['nonlinear'] * self.detector[0]['saturation']
-
-        # Reidentification parameters
         par['calibrations']['wavelengths']['method'] = 'reidentify'
+        par['calibrations']['wavelengths']['cc_thresh'] = 0.3
+        ## This part works for old data
         par['calibrations']['wavelengths']['reid_arxiv'] = 'magellan_fire_echelle.fits'
-        par['calibrations']['wavelengths']['ech_fix_format'] = True
+        ## This part works for new data
+        #par['calibrations']['wavelengths']['reid_arxiv'] = 'magellan_fire.fits'
+        par['calibrations']['wavelengths']['match_toler']=20.0
+
         # Echelle parameters
         par['calibrations']['wavelengths']['echelle'] = True
+        par['calibrations']['wavelengths']['ech_fix_format'] = True
         par['calibrations']['wavelengths']['ech_nspec_coeff'] = 4
         par['calibrations']['wavelengths']['ech_norder_coeff'] = 4
         par['calibrations']['wavelengths']['ech_sigrej'] = 3.0
@@ -110,8 +114,7 @@ class MagellanFIRESpectrograph(spectrograph.Spectrograph):
         # Always flux calibrate, starting with default parameters
         par['fluxcalib'] = pypeitpar.FluxCalibrationPar()
         # Do not correct for flexure
-        par['flexure'] = pypeitpar.FlexurePar()
-        par['flexure']['method'] = 'skip'
+        par['flexure'] = None
         # Set the default exposure time ranges for the frame typing
         par['calibrations']['standardframe']['exprng'] = [None, 60]
         par['calibrations']['arcframe']['exprng'] = [20, None]
