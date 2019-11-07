@@ -23,7 +23,7 @@ def valid_spectrographs():
             'shane_kast_blue', 'shane_kast_red', 'shane_kast_red_ret', 'tng_dolores',
             'wht_isis_blue', 'vlt_xshooter_uvb', 'vlt_xshooter_vis', 'vlt_xshooter_nir',
             'gemini_gnirs', 'gemini_gmos_south_ham', 'gemini_gmos_north_e2v',
-            'gemini_gmos_north_ham', 'magellan_fire', 'magellan_mage', 'keck_hires_red',
+            'gemini_gmos_north_ham', 'magellan_fire', 'magellan_fire_long', 'magellan_mage', 'keck_hires_red',
             'lbt_mods1r', 'lbt_mods1b', 'lbt_mods2r', 'lbt_mods2b', 'vlt_fors2', 'mmt_binospec']
             # There are no such spectrographs defined
             #'keck_hires_blue', 'mmt_binospec']
@@ -83,6 +83,9 @@ def load_spectrograph(spectrograph):
 
     if spectrograph == 'magellan_fire':
         return spectrographs.magellan_fire.MagellanFIRESpectrograph()
+
+    if spectrograph == 'magellan_fire_long':
+        return spectrographs.magellan_fire_long.MagellanFIRELONGSpectrograph()
 
     if spectrograph == 'magellan_mage':
         return spectrographs.magellan_mage.MagellanMAGESpectrograph()
