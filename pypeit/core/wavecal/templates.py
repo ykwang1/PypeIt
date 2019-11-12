@@ -579,10 +579,7 @@ def main(flg):
         all_flux = np.zeros_like(all_wave)
         for kk,order in enumerate(orders):
             all_flux[:,kk] = odict[str(kk)]['spec']
-            if 'nir' in iroot:
-                all_wave[:,kk] = odict[str(kk)]['wave_soln']
-            else:
-                all_wave[:,kk] = airtovac(odict[str(kk)]['wave_soln'] * units.AA).value
+            all_wave[:,kk] = odict[str(kk)]['wave_soln']
         # Write
         tbl = Table()
         tbl['wave'] = all_wave.T
