@@ -1228,20 +1228,21 @@ def compute_stack(wave_grid, waves, fluxes, ivars, masks, weights):
     weights_total, wave_edges = np.histogram(waves_flat,bins=wave_grid,density=False,weights=weights_flat)
 
     # Calculate the stacked wavelength
+    ## FW: I changed from 0.0 to 1e-4 to remove extreme values
     wave_stack_total, wave_edges = np.histogram(waves_flat,bins=wave_grid,density=False,weights=waves_flat*weights_flat)
-    wave_stack = (weights_total > 0.0)*wave_stack_total/(weights_total+(weights_total==0.))
+    wave_stack = (weights_total > 1e-4)*wave_stack_total/(weights_total+(weights_total==0.))
 
     # Calculate the stacked flux
     flux_stack_total, wave_edges = np.histogram(waves_flat,bins=wave_grid,density=False,weights=fluxes_flat*weights_flat)
-    flux_stack = (weights_total > 0.0)*flux_stack_total/(weights_total+(weights_total==0.))
+    flux_stack = (weights_total > 1e-4)*flux_stack_total/(weights_total+(weights_total==0.))
 
     # Calculate the stacked ivar
     var_stack_total, wave_edges = np.histogram(waves_flat,bins=wave_grid,density=False,weights=vars_flat*weights_flat**2)
-    var_stack = (weights_total > 0.0)*var_stack_total/(weights_total+(weights_total==0.))**2
+    var_stack = (weights_total > 1e-4)*var_stack_total/(weights_total+(weights_total==0.))**2
     ivar_stack = utils.inverse(var_stack)
 
     # New mask for the stack
-    mask_stack = (weights_total > 0.0) & (nused > 0.0)
+    mask_stack = (weights_total > 1e-4) & (nused > 0.0)
 
     return wave_stack, flux_stack, ivar_stack, mask_stack, nused
 
