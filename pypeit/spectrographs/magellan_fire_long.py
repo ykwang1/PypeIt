@@ -82,9 +82,9 @@ class MagellanFIRELONGSpectrograph(spectrograph.Spectrograph):
         par['calibrations']['slits']['maxshift'] = 0.5
 #        par['calibrations']['slits']['pcatype'] = 'pixel'
         # Scienceimage parameters
-        par['scienceimage']['sig_thresh'] = 2
+        par['scienceimage']['sig_thresh'] = 5
         par['scienceimage']['maxnumber'] = 2
-        par['scienceimage']['find_trim_edge'] = [5,5]
+        par['scienceimage']['find_trim_edge'] = [50,50]
         # Always flux calibrate, starting with default parameters
         par['fluxcalib'] = pypeitpar.FluxCalibrationPar()
         # Do not correct for flexure
