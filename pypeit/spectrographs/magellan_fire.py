@@ -80,7 +80,7 @@ class MagellanFIRESpectrograph(spectrograph.Spectrograph):
         par['calibrations']['wavelengths']['method'] = 'reidentify'
         par['calibrations']['wavelengths']['cc_thresh'] = 0.6
         par['calibrations']['wavelengths']['reid_arxiv'] = 'magellan_fire_echelle.fits'
-        par['calibrations']['wavelengths']['match_toler']=5.0
+        par['calibrations']['wavelengths']['match_toler']=20.0
 
         # Echelle parameters
         par['calibrations']['wavelengths']['echelle'] = True
