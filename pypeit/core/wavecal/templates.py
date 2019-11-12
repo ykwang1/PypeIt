@@ -652,8 +652,8 @@ if __name__ == '__main__':
 
     # Magellan/FIRE
     #flg += 2**21  # IDL to python
-    #flg += 2**22  # Convert new JSON solution to FITS
-    flg += 2**23  # Longslit
+    flg += 2**22  # Convert new JSON solution to FITS
+    #flg += 2**23  # Longslit
 
     main(flg)
 
