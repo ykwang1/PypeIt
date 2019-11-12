@@ -1,5 +1,6 @@
 """ Module for Magellan/FIRE specific codes
 """
+# ToDO: replace the wavelength template file with the templates.py the current one was corrected air2vac twice.
 import numpy as np
 
 from pypeit import msgs
