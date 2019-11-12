@@ -40,7 +40,7 @@ class MagellanFIRELONGSpectrograph(spectrograph.Spectrograph):
                             nonlinear       = 0.875,
                             numamplifiers   = 1,
                             gain            = 3.8,
-                            ronoise         = 20.0,
+                            ronoise         = 6.0, # SUTR readout mode with exposure~600s
                             datasec         = '[5:2044, 900:1250]',
                             oscansec        = '[:5, 900:1250]'
                             )]
