@@ -2074,7 +2074,7 @@ def ech_combspec(fnames, objids, sensfile=None, nbest=None, ex_value='OPT', flux
                  sn_smooth_npix=None, const_weights=False, maxiter_reject=5, sn_clip=30.0, lower=3.0, upper=3.0,
                  maxrej=None, max_factor=10.0, maxiters=5, min_good=0.05, phot_scale_dicts=None, nmaskedge=2,
                  qafile=None, outfile = None, order_scale=False,
-                 merge_stack=False, debug_scale=False, debug=False, show_order_stacks=False, show_order_scale=False, show_exp=False, show=False):
+                 merge_stack=True, debug_scale=False, debug=False, show_order_stacks=False, show_order_scale=False, show_exp=False, show=False):
     '''
     Driver routine for coadding Echelle spectra. Calls combspec which is the main stacking algorithm. It will deliver
     three fits files: spec1d_order_XX.fits (stacked individual orders, one order per extension), spec1d_merge_XX.fits
