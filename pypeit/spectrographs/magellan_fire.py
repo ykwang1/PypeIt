@@ -78,9 +78,9 @@ class MagellanFIRESpectrograph(spectrograph.Spectrograph):
         par['calibrations']['wavelengths']['lamps'] = ['OH_FIRE_Echelle']
         par['calibrations']['wavelengths']['nonlinear_counts'] = self.detector[0]['nonlinear'] * self.detector[0]['saturation']
         par['calibrations']['wavelengths']['method'] = 'reidentify'
-        par['calibrations']['wavelengths']['cc_thresh'] = 0.5
+        par['calibrations']['wavelengths']['cc_thresh'] = 0.35
         par['calibrations']['wavelengths']['reid_arxiv'] = 'magellan_fire_echelle.fits'
-        par['calibrations']['wavelengths']['match_toler']=20.0
+        par['calibrations']['wavelengths']['match_toler']=30.0
 
         # Echelle parameters
         par['calibrations']['wavelengths']['echelle'] = True
