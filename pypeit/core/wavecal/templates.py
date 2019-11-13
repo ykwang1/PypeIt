@@ -539,9 +539,6 @@ def main(flg):
         # Load
         mase_path = os.path.join(os.getenv('FIRE_DIR'), 'Arcs')
         sav_file = os.path.join(mase_path, 'OH_guess_v5.idl')
-        #sav_file = os.path.join(mase_path, 'OH_guess_v2.idl')
-        #mase_path = os.path.join(os.getenv('FIRE_DIR'), 'Calib')
-        #sav_file = os.path.join(mase_path, 'fire_wvguess2.idl')
         mase_dict = readsav(sav_file)
         mase_sol = Table(mase_dict['all_arcfit'])
         # Do it
@@ -550,9 +547,10 @@ def main(flg):
         for order in np.arange(21):
             all_flux[:,order] = mase_dict['sv_aspec'][order]
             # Build the wavelengths
-            wv_air = cheby_val(mase_sol['FFIT'][order], np.arange(2048), mase_sol['NRM'][order],
+            # OH lines are already in vacuum in FIREHOSE
+            wv_vac = cheby_val(mase_sol['FFIT'][order], np.arange(2048), mase_sol['NRM'][order],
                                          mase_sol['NORD'][order])
-            all_wave[:,order] = airtovac(wv_air * units.AA).value
+            all_wave[:,order] = wv_vac # airtovac(wv_air * units.AA).value
         # Write
         tbl = Table()
         tbl['wave'] = all_wave.T
