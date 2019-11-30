@@ -427,7 +427,7 @@ def median_filt_spec(flux, ivar, mask, med_width):
 def solve_poly_ratio(wave, flux, ivar, flux_ref, ivar_ref, norder, mask = None, mask_ref = None,
                      scale_min = 0.05, scale_max = 100.0, func='legendre', model ='square',
                      maxiter=3, sticky=True, lower=3.0, upper=3.0, median_frac=0.01,
-                     ref_percentile=20, debug=False):
+                     ref_percentile=70, debug=False):
     '''
     Routine for solving for the polynomial rescaling of an input spectrum flux to match a reference spectrum flux_ref.
     The two spectra need to be defined on the same wavelength grid. The code will work best if you choose the reference
@@ -844,7 +844,7 @@ def get_tell_from_file(sensfile, waves, masks, iord=None):
     return telluric
 
 
-def robust_median_ratio(flux, ivar, flux_ref, ivar_ref, mask=None, mask_ref=None, ref_percentile=20.0, min_good=0.05,
+def robust_median_ratio(flux, ivar, flux_ref, ivar_ref, mask=None, mask_ref=None, ref_percentile=70.0, min_good=0.05,
                         maxiters=5, sigrej=3.0, max_factor=10.0):
     '''
     Robustly determine the ratio between input spectrum flux and reference spectrum flux_ref. The code will perform
@@ -1035,7 +1035,7 @@ def order_median_scale(waves, fluxes, ivars, masks, min_good=0.05, maxiters=5, m
 
 
 def scale_spec(wave, flux, ivar, sn, wave_ref, flux_ref, ivar_ref, mask=None, mask_ref=None, scale_method=None, min_good=0.05,
-               ref_percentile=20.0, maxiters=5, sigrej=3, max_median_factor=10.0,
+               ref_percentile=70.0, maxiters=5, sigrej=3, max_median_factor=10.0,
                npoly=None, hand_scale=None, sn_max_medscale=2.0, sn_min_medscale=0.5, debug=False, show=False):
     '''
     Routine for solving for the best way to rescale an input spectrum flux to match a reference spectrum flux_ref.
@@ -1070,7 +1070,7 @@ def scale_spec(wave, flux, ivar, sn, wave_ref, flux_ref, ivar_ref, mask=None, ma
        maximum scale factor for median rescaling for robust_median_ratio if median rescaling is the method used.
     sigrej: float, default=3.0
        rejection threshold used for rejecting outliers by robsut_median_ratio
-    ref_percentile: float, default=20.0
+    ref_percentile: float, default=70.0
        percentile fraction cut used for selecting minimum SNR cut for robust_median_ratio
     npoly: int, default=None
        order for the poly ratio scaling if polynomial rescaling is the method used. Default is to automatically compute
@@ -1774,7 +1774,7 @@ def spec_reject_comb(wave_grid, waves, fluxes, ivars, masks, weights, sn_clip=30
     return wave_stack, flux_stack, ivar_stack, mask_stack, outmask, nused
 
 
-def scale_spec_stack(wave_grid, waves, fluxes, ivars, masks, sn, weights, ref_percentile=30.0, maxiter_scale=5, sigrej_scale=3,
+def scale_spec_stack(wave_grid, waves, fluxes, ivars, masks, sn, weights, ref_percentile=70.0, maxiter_scale=5, sigrej_scale=3,
                      scale_method=None, hand_scale=None, sn_max_medscale=2.0, sn_min_medscale=0.5, debug=False, show=False):
 
     '''
@@ -1831,7 +1831,7 @@ def scale_spec_stack(wave_grid, waves, fluxes, ivars, masks, sn, weights, ref_pe
         maxiter_reject: int, default=5
             maximum number of iterations for stacking and rejection. The code stops iterating either when
             the output mask does not change betweeen successive iterations or when maxiter_reject is reached.
-        ref_percentile: float, default=20.0
+        ref_percentile: float, default=70.0
             percentile fraction cut used for selecting minimum SNR cut for robust_median_ratio
         maxiter_scale: int, default=5
             Maximum number of iterations performed for rescaling spectra.
@@ -1912,7 +1912,7 @@ def scale_spec_stack(wave_grid, waves, fluxes, ivars, masks, sn, weights, ref_pe
 #Todo: This should probaby take a parset?
 def combspec(waves, fluxes, ivars, masks, sn_smooth_npix,
              wave_method='linear', dwave=None, dv=None, dloglam=None, samp_fact=1.0, wave_grid_min=None, wave_grid_max=None,
-             ref_percentile=20.0, maxiter_scale=5,
+             ref_percentile=70.0, maxiter_scale=5,
              sigrej_scale=3, scale_method=None, hand_scale=None, sn_max_medscale=2.0, sn_min_medscale=0.5,
              const_weights=False, maxiter_reject=5, sn_clip=30.0, lower=3.0, upper=3.0,
              maxrej=None, qafile=None, title='', debug=False, debug_scale=False, show_scale=False, show=False):
@@ -2034,7 +2034,7 @@ def combspec(waves, fluxes, ivars, masks, sn_smooth_npix,
 #Todo: Make this work for multiple objects after the coadd script input file format is fixed.
 def multi_combspec(fnames, objids, sn_smooth_npix=None, ex_value='OPT', flux_value=True,
                    wave_method='linear', dwave=None, dv=None, dloglam=None, samp_fact=1.0, wave_grid_min=None,
-                   wave_grid_max=None, ref_percentile=20.0, maxiter_scale=5,
+                   wave_grid_max=None, ref_percentile=70.0, maxiter_scale=5,
                    sigrej_scale=3, scale_method=None, hand_scale=None, sn_max_medscale=2.0, sn_min_medscale=0.5,
                    const_weights=False, maxiter_reject=5, sn_clip=30.0, lower=3.0, upper=3.0,
                    maxrej=None, nmaskedge=2, phot_scale_dicts=None,
@@ -2070,7 +2070,7 @@ def multi_combspec(fnames, objids, sn_smooth_npix=None, ex_value='OPT', flux_val
 
 def ech_combspec(fnames, objids, sensfile=None, nbest=None, ex_value='OPT', flux_value=True, wave_method='log10',
                  dwave=None, dv=None, dloglam=None, samp_fact=1.0, wave_grid_min=None, wave_grid_max=None,
-                 ref_percentile=20.0, maxiter_scale=5,
+                 ref_percentile=70.0, maxiter_scale=5,
                  niter_order_scale=3, sigrej_scale=3, scale_method=None, hand_scale=None, sn_max_medscale=2.0, sn_min_medscale=0.5,
                  sn_smooth_npix=None, const_weights=False, maxiter_reject=5, sn_clip=30.0, lower=3.0, upper=3.0,
                  maxrej=None, max_factor=10.0, maxiters=5, min_good=0.05, phot_scale_dicts=None, nmaskedge=2,
@@ -2287,6 +2287,7 @@ def ech_combspec(fnames, objids, sensfile=None, nbest=None, ex_value='OPT', flux
             wave_grid, waves_2d, fluxes_pre_scale, ivars_pre_scale, masks_2d, rms_sn_2d, weights_2d, ref_percentile=ref_percentile,
             maxiter_scale=maxiter_scale, sigrej_scale=sigrej_scale, scale_method=scale_method_iter[iter], hand_scale=hand_scale,
             sn_max_medscale=sn_max_medscale, sn_min_medscale=sn_min_medscale,
+            #show=(True & (iter == (niter_order_scale-1))))
             show=(show_order_scale & (iter == (niter_order_scale-1))))
         scales_2d *= scales_iter
         fluxes_pre_scale = fluxes_scale_2d.copy()
@@ -2320,6 +2321,19 @@ def ech_combspec(fnames, objids, sensfile=None, nbest=None, ex_value='OPT', flux
             coadd_qa(waves_stack_orders[:, iord], fluxes_stack_orders[:, iord], ivars_stack_orders[:, iord], nused_iord,
                      mask=masks_stack_orders[:, iord], tell=tell_iord,
                      title='Coadded spectrum of order {:d}/{:d}'.format(iord, norder))
+
+    from IPython import embed
+    embed()
+    ## GNIRS scale for BlueHawaii
+    scale_order = np.ones(norder)
+    scale_order[3] = np.median(fluxes_stack_orders[:,2][(waves_stack_orders[:,2]>11800.0)&(waves_stack_orders[:,2]<12580.0)]) / \
+            np.median(fluxes_stack_orders[:,3][(waves_stack_orders[:,3]>11800.0)&(waves_stack_orders[:,3]<12580.0)])
+    for iord in range(norder):
+        fluxes_stack_orders[:, iord] *= scale_order[iord]
+        ivars_stack_orders[:, iord] *= 1.0 / scale_order[iord]**2
+        plt.plot(waves_stack_orders[:, iord][masks_stack_orders[:, iord]], fluxes_stack_orders[:, iord][masks_stack_orders[:, iord]])
+    plt.show()
+
 
     ## Stack with an altnernative method: combine the stacked individual order spectra directly
     if merge_stack:
