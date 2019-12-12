@@ -218,6 +218,9 @@ class GeminiGNIRSSpectrograph(spectrograph.Spectrograph):
 
     @property
     def order_spat_pos(self):
+        # Old data, i.e. for 2010
+        #ord_spat_pos = np.array([0.241211 , 0.3173828, 0.387695, 0.456054, 0.530273, 0.640625])
+        # New data
         ord_spat_pos = np.array([0.2955097 , 0.37635756, 0.44952223, 0.51935601, 0.59489503, 0.70210309])
         return ord_spat_pos
 
