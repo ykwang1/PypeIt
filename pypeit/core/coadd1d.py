@@ -1937,7 +1937,7 @@ def combspec(waves, fluxes, ivars, masks, sn_smooth_npix,
              wave_method='linear', dwave=None, dv=None, dloglam=None, samp_fact=1.0, wave_grid_min=None, wave_grid_max=None,
              ref_percentile=70.0, maxiter_scale=5,
              sigrej_scale=3, scale_method=None, hand_scale=None, sn_max_medscale=2.0, sn_min_medscale=0.5,
-             const_weights=False, maxiter_reject=5, sn_clip=30.0, lower=3.0, upper=3.0,
+             const_weights=False, ivar_weights=False, maxiter_reject=5, sn_clip=30.0, lower=3.0, upper=3.0,
              maxrej=None, qafile=None, title='', debug=False, debug_scale=False, show_scale=False, show=False):
 
     '''
@@ -2036,7 +2036,8 @@ def combspec(waves, fluxes, ivars, masks, sn_smooth_npix,
                                     wave_grid_max=wave_grid_max,dwave=dwave, dv=dv, dloglam=dloglam, samp_fact=samp_fact)
 
     # Evaluate the sn_weights. This is done once at the beginning
-    rms_sn, weights = sn_weights(waves, fluxes, ivars, masks, sn_smooth_npix, const_weights=const_weights, verbose=True)
+    rms_sn, weights = sn_weights(waves, fluxes, ivars, masks, sn_smooth_npix, const_weights=const_weights,
+                                 ivar_weights=ivar_weights, verbose=True)
 
     fluxes_scale, ivars_scale, scales, scale_method_used = scale_spec_stack(
         wave_grid, waves, fluxes, ivars, masks, rms_sn, weights, ref_percentile=ref_percentile, maxiter_scale=maxiter_scale,
