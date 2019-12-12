@@ -687,6 +687,11 @@ def sn_weights(waves, fluxes, ivars, masks, sn_smooth_npix, const_weights=False,
     else:
         msgs.error('Unrecognized dimensionality for flux')
 
+    #total_flux = np.sum(flux_stack*mask_stack,axis=0)
+    #mean_flux = np.mean(flux_stack*mask_stack,axis=0)
+    #mean_flux_spec = np.outer(np.ones(nspec), mean_flux)
+    #sn_val = (flux_stack+0.2*mean_flux_spec)*np.sqrt(ivar_stack)
+
     # Calculate S/N
     sn_val = flux_stack*np.sqrt(ivar_stack)
     sn_val_ma = np.ma.array(sn_val, mask = np.invert(mask_stack))
@@ -726,6 +731,11 @@ def sn_weights(waves, fluxes, ivars, masks, sn_smooth_npix, const_weights=False,
                 sig_res = np.fmax(sn_smooth_npix/10.0, 3.0)
                 gauss_kernel = convolution.Gaussian1DKernel(sig_res)
                 sn_conv = convolution.convolve(sn_med2, gauss_kernel, boundary='extend')
+
+                #ivar_med1 = utils.fast_running_median(ivar_stack[mask_stack[:, iexp],iexp]**2, sn_smooth_npix)
+                #ivar_med2 = scipy.interpolate.interp1d(spec_vec[mask_stack[:, iexp]], ivar_med1, kind = 'cubic',
+                #                                     bounds_error = False, fill_value = 0.0)(spec_vec)
+                #ivar_conv = convolution.convolve(ivar_med2, gauss_kernel, boundary='extend')
                 weights[:, iexp] = sn_conv
             if verbose:
                 msgs.info('Using {:s} weights for coadding, S/N '.format(weight_method) +
@@ -851,7 +861,6 @@ def robust_median_ratio(flux, ivar, flux_ref, ivar_ref, mask=None, mask_ref=None
     Robustly determine the ratio between input spectrum flux and reference spectrum flux_ref. The code will perform
     best if the reference spectrum is chosen to be the higher S/N ratio spectrum, i.e. a preliminary stack that you want
     to scale each exposure to match. Note that the flux and flux_ref need to be on the same wavelength grid!!
-
     Args:
         wave: ndarray, (nspec,)
             wavelengths grid for the spectra
@@ -1227,8 +1236,7 @@ def compute_stack(wave_grid, waves, fluxes, ivars, masks, weights):
              one bin versus another depending on the sampling.
     '''
 
-    #mask bad values and extreme values (usually caused by extreme low sensitivity at the edge of detectors)
-    ubermask = masks & (weights > 0.0) & (waves > 1.0) & (ivars > 0.0) & (utils.inverse(ivars)<1e10)
+    ubermask = masks & (weights > 0.0) & (waves > 1.0) & (ivars > 0.0)
     waves_flat = waves[ubermask].flatten()
     fluxes_flat = fluxes[ubermask].flatten()
     ivars_flat = ivars[ubermask].flatten()
@@ -2022,7 +2030,6 @@ def combspec(waves, fluxes, ivars, masks, sn_smooth_npix,
              Mask for stacked spectrum on wave_stack wavelength grid. True=Good.
     '''
 
-
     # Generate a giant wave_grid
     wave_grid, _, _ = get_wave_grid(waves, masks = masks, wave_method=wave_method, wave_grid_min=wave_grid_min,
                                     wave_grid_max=wave_grid_max,dwave=dwave, dv=dv, dloglam=dloglam, samp_fact=samp_fact)
@@ -2301,6 +2308,7 @@ def ech_combspec(fnames, objids, sensfile=None, nbest=None, ex_value='OPT', flux
             wave_grid, waves_2d, fluxes_pre_scale, ivars_pre_scale, masks_2d, rms_sn_2d, weights_2d, ref_percentile=ref_percentile,
             maxiter_scale=maxiter_scale, sigrej_scale=sigrej_scale, scale_method=scale_method_iter[iter], hand_scale=hand_scale,
             sn_max_medscale=sn_max_medscale, sn_min_medscale=sn_min_medscale,
+            #show=(True & (iter == (niter_order_scale-1))))
             show=(show_order_scale & (iter == (niter_order_scale-1))))
         scales_2d *= scales_iter
         fluxes_pre_scale = fluxes_scale_2d.copy()
@@ -2334,6 +2342,20 @@ def ech_combspec(fnames, objids, sensfile=None, nbest=None, ex_value='OPT', flux
             coadd_qa(waves_stack_orders[:, iord], fluxes_stack_orders[:, iord], ivars_stack_orders[:, iord], nused_iord,
                      mask=masks_stack_orders[:, iord], tell=tell_iord,
                      title='Coadded spectrum of order {:d}/{:d}'.format(iord, norder))
+    '''
+    from IPython import embed
+    embed()
+    ## GNIRS scale for BlueHawaii
+    scale_order = np.ones(norder)
+    #scale_order[3] = np.median(fluxes_stack_orders[:,2][(waves_stack_orders[:,2]>11800.0)&(waves_stack_orders[:,2]<12580.0)]) / \
+    #        np.median(fluxes_stack_orders[:,3][(waves_stack_orders[:,3]>11800.0)&(waves_stack_orders[:,3]<12580.0)])
+    for iord in range(norder):
+        fluxes_stack_orders[:, iord] *= scale_order[iord]
+        ivars_stack_orders[:, iord] *= 1.0 / scale_order[iord]**2
+        plt.plot(waves_stack_orders[:, iord][masks_stack_orders[:, iord]], fluxes_stack_orders[:, iord][masks_stack_orders[:, iord]])
+    plt.show()
+    '''
+
 
     ## Stack with an altnernative method: combine the stacked individual order spectra directly
     if merge_stack:
