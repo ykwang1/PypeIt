@@ -15,12 +15,14 @@ from pypeit.spectrographs import spectrograph
 class GeminiFLAMINGOSSpectrograph(spectrograph.Spectrograph):
     """
     Child to handle Gemini/Flamingos specific code
+
     .. note::
         For FIRE Echelle, we usually use high gain and SUTR read mode.
         The exposure time is usually around 900s. The detector
         parameters below are based on such mode. Standard star and
         calibrations are usually use Fowler 1 read mode in which case
         the read noise is ~20 electron.
+
     """
     def __init__(self):
         # Get it started
@@ -40,8 +42,10 @@ class GeminiFLAMINGOSSpectrograph(spectrograph.Spectrograph):
         """
         Generate the meta data dict
         Note that the children can add to this
+
         Returns:
             self.meta: dict (generated in place)
+
         """
         meta = {}
         # Required (core)
@@ -65,12 +69,14 @@ class GeminiFLAMINGOSSpectrograph(spectrograph.Spectrograph):
 class GeminiFLAMINGOS2Spectrograph(GeminiFLAMINGOSSpectrograph):
     """
     Child to handle Magellan/FIRE Echelle data
+
     .. note::
         For FIRE Echelle, we usually use high gain and SUTR read mode.
         The exposure time is usually around 900s. The detector
         parameters below are based on such mode. Standard star and
         calibrations are usually use Fowler 1 read mode in which case
         the read noise is ~20 electron.
+
     """
     def __init__(self):
         # Get it started
@@ -161,8 +167,10 @@ class GeminiFLAMINGOS2Spectrograph(GeminiFLAMINGOSSpectrograph):
         """
         Modify the PypeIt parameters to hard-wired values used for
         specific instrument configurations.
+
         .. todo::
             Document the changes made!
+
         Args:
             scifile (str):
                 File to use when determining the configuration and how
@@ -170,6 +178,7 @@ class GeminiFLAMINGOS2Spectrograph(GeminiFLAMINGOSSpectrograph):
             inp_par (:class:`pypeit.par.parset.ParSet`, optional):
                 Parameter set used for the full run of PypeIt.  If None,
                 use :func:`default_pypeit_par`.
+
         Returns:
             :class:`pypeit.par.parset.ParSet`: The PypeIt paramter set
             adjusted for configuration specific parameter values.
@@ -210,17 +219,21 @@ class GeminiFLAMINGOS2Spectrograph(GeminiFLAMINGOSSpectrograph):
     def bpm(self, filename, det, shape=None):
         """
         Override parent bpm function with BPM specific to X-Shooter VIS.
+
         .. todo::
             Allow for binning changes.
+
         Parameters
         ----------
         det : int, REQUIRED
         **null_kwargs:
             Captured and never used
+
         Returns
         -------
         bpix : ndarray
           0 = ok; 1 = Mask
+
         """
         # ToDo: replace this with real bad pixel masks
         msgs.info("Custom bad pixel mask for FLAMINGOS")
@@ -232,6 +245,7 @@ class GeminiFLAMINGOS2Spectrograph(GeminiFLAMINGOSSpectrograph):
 class GeminiFLAMINGOS1Spectrograph(GeminiFLAMINGOSSpectrograph):
     """
     TODO: Place holder, NOT works yet.
+
     """
     def __init__(self):
         # Get it started
@@ -322,3 +336,4 @@ class GeminiFLAMINGOS1Spectrograph(GeminiFLAMINGOSSpectrograph):
             return good_exp & (fitstbl['idname'] == 'Arc')
         msgs.warn('Cannot determine if frames are of type {0}.'.format(ftype))
         return np.zeros(len(fitstbl), dtype=bool)
+
