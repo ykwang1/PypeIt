@@ -392,7 +392,7 @@ def apply_sensfunc_spec(wave, counts, ivar, sensfunc, airmass, exptime, mask=Non
         senstot = sensfunc.copy()
 
     flam = counts * senstot/ exptime
-    flam_ivar = ivar / (senstot / exptime) **2
+    flam_ivar = ivar / ((senstot + (senstot == 0.0)) / exptime) **2
 
     # Mask bad pixels
     msgs.info(" Masking bad pixels")
