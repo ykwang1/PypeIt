@@ -122,6 +122,8 @@ class GeminiGNIRSSpectrograph(spectrograph.Spectrograph):
         par['calibrations']['pixelflatframe']['exprng'] = [None, 30]
         par['calibrations']['traceframe']['exprng'] = [None, 30]
         par['calibrations']['standardframe']['exprng'] = [None, 30]
+        par['calibrations']['arcframe']['exprng'] = [30, None]
+        par['calibrations']['tiltframe']['exprng'] = [30, None]
         par['scienceframe']['exprng'] = [30, None]
 
         # Do not bias subtract
@@ -182,7 +184,7 @@ class GeminiGNIRSSpectrograph(spectrograph.Spectrograph):
             # Don't type pinhole, dark, or bias frames
             return np.zeros(len(fitstbl), dtype=bool)
         if ftype in ['arc', 'tilt']:
-            return good_exp & (fitstbl['idname'] == 'ARC')
+            return good_exp & (fitstbl['idname'] == 'OBJECT')
 
         msgs.warn('Cannot determine if frames are of type {0}.'.format(ftype))
         return np.zeros(len(fitstbl), dtype=bool)
