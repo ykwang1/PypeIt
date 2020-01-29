@@ -397,10 +397,10 @@ class SlitTraceSet(datamodel.DataContainer, masterframe.MasterFrame):
         slit.
 
         The output image has the same shape as the original trace
-        image. Each pixel Each pixel in the image is set to the index
-        of its associated slit (i.e, the pixel value is
-        :math:`0..N_{\rm slit}-1`). Pixels not associated with any
-        slit are given values of -1.
+        image. Each pixel in the image is set to the index of its
+        associated slit (i.e, the pixel value is :math:`0..N_{\rm
+        slit}-1`). Pixels not associated with any slit are given
+        values of -1.
 
         The width of the slit is extended at either edge by a fixed
         number of pixels using the `pad` parameter in :attr:`par`.
@@ -409,20 +409,21 @@ class SlitTraceSet(datamodel.DataContainer, masterframe.MasterFrame):
 
         .. warning::
 
-            The function does not check that pixels end up in
-            multiple pixels or that the padding is sensible given the
-            separation between slit edges!
+            The function does not check that pixels are identified as
+            belonging to multiple slits, with or without the padding.
+            If the padding is too big, you may be hindering the
+            analysis of some slits!
 
         Args:
             pad (:obj:`float`, :obj:`int`, :obj:`tuple`, optional):
                 The number of pixels used to pad (extend) the edge of
-                each slit. This can be a single scale to pad both
-                left and right edges equally or a 2-tuple that
-                provides separate padding for the left (first
-                element) and right (2nd element) edges separately. If
-                not None, this overrides the value in :attr:`par`.
-                The value can be negative, which means that the
-                widths are **trimmed** instead of padded.
+                each slit. This can be a single value used to pad
+                both left and right edges equally or a 2-tuple that
+                provides padding for the left (first element) and
+                right (2nd element) edges separately. If not None,
+                this overrides the value in :attr:`par`. The value
+                can be negative, which means that the widths are
+                **trimmed** instead of padded.
             slitids (:obj:`int`, array_like, optional):
                 List of slit IDs to include in the image. If None,
                 all slits are included.
@@ -441,7 +442,7 @@ class SlitTraceSet(datamodel.DataContainer, masterframe.MasterFrame):
         # Check the input
         if pad is None:
             pad = self.pad
-        _pad = pad if isinstance(pad, tuple) else (pad,pad)
+        _pad = tuple(pad) if isinstance(pad, (tuple, list)) else (pad,pad)
         if len(_pad) != 2:
             msgs.error('Padding for both left and right edges should be provided as a 2-tuple!')
 
@@ -460,6 +461,7 @@ class SlitTraceSet(datamodel.DataContainer, masterframe.MasterFrame):
 
         # Find the pixels in each slit, limited by the minimum and
         # maximum spectral position.
+        # TODO: Still feels inefficient...
         slitid_img = np.full((self.nspec,self.nspat), -1, dtype=int)
         for i in slitids:
             indx = (spat[None,:] > left[:,i,None] - _pad[0]) \
@@ -467,6 +469,108 @@ class SlitTraceSet(datamodel.DataContainer, masterframe.MasterFrame):
                         & (spec > self.specmin[i])[:,None] & (spec < self.specmax[i])[:,None]
             slitid_img[indx] = i
         return slitid_img
+
+    def slit_edge_img(self, pad=None, trim=5, slitid_img=None, slitids=None, original=False):
+        r"""
+        Construct an image identifying pixels with the edge of each
+        slit.
+
+        The output image has the same shape as the original trace
+        image. Each pixel in the image is set to the index of its
+        associated slit (i.e, the pixel value is :math:`0..N_{\rm
+        slit}-1`) if it is identified as being at the edge of the
+        slit. Pixels not associated with any slit edge are given
+        values of -1.
+
+        In detail, the algorithm constructs two slit ID images (see
+        :func:`slit_img`), one using the provided padding to
+        *spatially broaden* the pixels included in each slit
+        (``pad``) and one using the provided trimming to *spatially
+        narrow* the pixels included in each slit. The edges are then
+        just set by the pixels that are on the padded slit but not on
+        the trimmed slit.
+        
+        .. note::
+
+             The trimming is always referenced to the *nominal* slit
+             edge (i.e., when no padding is included). The means the
+             number of pixels in each edge at a fixed spectral
+             position is ``trim+pad``.
+        
+        .. warning::
+
+            The function does not check that pixels are identified as
+            belonging to multiple slits, with or without the
+            padding/trimming. If the padding is too big, you may be
+            hindering the analysis of some slits!
+
+        Args:
+            pad (:obj:`float`, :obj:`int`, :obj:`tuple`, optional):
+                The number of pixels used to pad (extend) the edge of
+                each slit. This can be a single value to pad both
+                left and right edges equally or a 2-tuple that
+                provides padding for the left (first
+                element) and right (2nd element) edges separately. If
+                not None, this overrides the value in :attr:`par`.
+                Cannot be negative.
+            trim (:obj:`float`, :obj:`int`, :obj:`tuple`, optional):
+                The number of pixels used trim the spatial width of
+                each slit. This can be a single value to trim both
+                left and right edges equally or a 2-tuple that
+                provides trimming for the left (first element) and
+                right (2nd element) edges separately. Must be
+                :math:`\geq 1` and cannot be None. NOTE: The number
+                of pixels in the slit edge is ``pad+trim``.
+            slitid_img (`numpy.ndarray`_, optional):
+                Image identifying the slit associated with each
+                pixel. Should have the same shape as expected by the
+                object (:attr:`nspec` by :attr:`nspat`). Pixels not
+                associated with any pixel have a value of -1. This is
+                a convenience parameter that allows previous
+                executions of :func:`slit_img` to be passed in
+                directly instead of having to repeat the operation.
+            slitids (:obj:`int`, array_like, optional):
+                List of slit IDs to include in the image. If None,
+                all slits are included.
+            original (:obj:`bool`, optional):
+                By default, the method will use the tweaked slit
+                edges if they have been defined. If they haven't
+                been, the nominal edges (:attr:`left` and
+                :attr:`right`) are used. To use the nominal edges
+                regardless of the presence of the tweaked edges, set
+                this to True. See :func:`select_edges`.
+
+        Returns:
+            `numpy.ndarray`_: The image with the slit index
+            identified for each pixel that is associated with a slit
+            edge.
+        """
+        # Check the input
+        if trim is None:
+            msgs.error('Must provide a value for trim that is >= 1.')
+        if slitid_img is None:
+            # Construct the nominal slit ID image
+            if pad is not None and pad < 0:
+                msgs.error('Padding must be >=0.')
+            slitid_img = self.slit_img(pad=pad, slitids=slitids, original=original)
+        _trim = tuple(trim) if isinstance(trim, (tuple,list)) else (trim,trim)
+        if len(_trim) != 2:
+            msgs.error('Padding for both left and right edges should be provided as a 2-tuple!')
+        if _trim[0] < 1 or _trim[1] < 1:
+            msgs.error('Trimming value must be >=1.')
+
+        # Construct the trimmed ID image
+        _trim = (-_trim[0], -_trim[1])
+        trimmed_slitid_img = self.slit_img(pad=_trim, slitids=slitids, original=original)
+
+        # Isolate the pixels on the edge
+        slitedgeid_img = slitid_img.copy()
+        indx = slitid_img == trimmed_slitid_img
+        if slitids is not None:
+            # Only return the selected slits
+            indx |= np.invert(np.isin(slitid_img, np.atleast_1d(slitids).ravel()))
+        slitedgeid_img[indx] = -1
+        return slitedgeid_img
 
     def spatial_coordinate_image(self, slitids=None, full=False, slitid_img=None, pad=None,
                                  original=False):
@@ -519,13 +623,6 @@ class SlitTraceSet(datamodel.DataContainer, masterframe.MasterFrame):
         if full and len(_slitids) > 1:
             msgs.error('For a full image with the slit coordinates, must select a single slit.')
 
-        # Generate the slit ID if it wasn't provided
-        if not full:
-            if slitid_img is None:
-                slitid_img = self.slit_img(pad=pad, slitids=_slitids, original=original)
-            if slitid_img.shape != (self.nspec,self.nspat):
-                msgs.error('Provided slit ID image does not have the correct shape!')
-
         # Choose the slit edges to use
         left, right = self.select_edges(original=original)
 
@@ -541,16 +638,23 @@ class SlitTraceSet(datamodel.DataContainer, masterframe.MasterFrame):
             # TODO: Shouldn't this fault?
             msgs.warn('Slits {0} have negative (or 0) slit width!'.format(bad_slits))
 
-        # Output image
+        # Only one slit with the coordinates over the full image
+        if full:
+            spat = np.arange(self.nspat)
+            return (spat[None,:] - left[:,_slitids[0],None])/slitwidth[:,_slitids[0],None]
+
+        # Generate the slit ID if it wasn't provided
+        # TODO: Do this check above?
+        if slitid_img is None:
+            slitid_img = self.slit_img(pad=pad, slitids=_slitids, original=original)
+        if slitid_img.shape != (self.nspec,self.nspat):
+            msgs.error('Provided slit ID image does not have the correct shape!')
+
+        # Multiple slits with the coordinates only within the relevant
+        # slit
         coo_img = np.zeros((self.nspec,self.nspat), dtype=float)
-        spat = np.arange(self.nspat)
-        for i in _slitids:
-            coo = (spat[None,:] - left[:,i,None])/slitwidth[:,i,None]
-            if not full:
-                indx = slitid_img == i
-                coo_img[indx] = coo[indx]
-            else:
-                coo_img = coo
+        i, j = np.where(np.isin(slitid_img, _slitids))
+        coo_img[i,j] = (j - left[i,slitid_img[i,j]])/slitwidth[i,slitid_img[i,j]] 
         return coo_img
 
     def spatial_coordinates(self, original=False):

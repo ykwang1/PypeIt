@@ -99,9 +99,15 @@ class Reduce:
         self.tilts = self.caliBrate.tilts_dict['tilts']
         # Now add the slitmask to the mask (i.e. post CR rejection in proc)
         # TODO: We keep creating this image...
-        # NOTE: this uses the par defined by EdgeTraceSet; this will
+        # NOTE: this uses the pad defined by SlitTraceSet; this will
         # use the tweaked traces if they exist
         self.slitmask = self.slits.slit_img()
+        # TODO: Currently created when they're needed. Create them once
+        # here instead?
+        # self.edgemask = None
+        # self.slitspat = None
+        # TODO: Do edgemask and slitspat need to be added to sciImg,
+        # too?
         self.sciImg.update_mask_slitmask(self.slitmask)
         self.maskslits = self._get_goodslits(maskslits)
         # Load up other input items
@@ -380,7 +386,8 @@ class Reduce:
             skymask = skymask_pos
 
         if show:
-            self.show('image', image=image*(self.sciImg.mask == 0), chname='objfind',sobjs=sobjs_obj_single, slits=True)
+            self.show('image', image=image*(self.sciImg.mask == 0), chname='objfind',
+                      sobjs=sobjs_obj_single, slits=True)
 
         # For nobj we take only the positive objects
         return sobjs_obj_single, nobj_single, skymask
@@ -398,8 +405,8 @@ class Reduce:
          """
         return None, None, None
 
-    def global_skysub(self, skymask=None, update_crmask=True,
-                      show_fit=False, show=False, show_objs=False):
+    def global_skysub(self, skymask=None, update_crmask=True, show_fit=False, show=False,
+                      show_objs=False):
         """
         Perform global sky subtraction, slit by slit
 
@@ -431,8 +438,10 @@ class Reduce:
         #self.maskslits = self.maskslits if maskslits is None else maskslits
         gdslits = np.where(np.invert(self.maskslits))[0]
 
-        # Mask objects using the skymask? If skymask has been set by objfinding, and masking is requested, then do so
-        skymask_now = skymask if (skymask is not None) else np.ones_like(self.sciImg.image, dtype=bool)
+        # Mask objects using the skymask? If skymask has been set by
+        # objfinding, and masking is requested, then do so
+        skymask_now = skymask if skymask is not None else \
+                        np.ones_like(self.sciImg.image, dtype=bool)
 
         # Select the edges to use: Selects the edges tweaked by the
         # illumination profile if they're present; otherwise, it
@@ -440,15 +449,25 @@ class Reduce:
         # select the latter, use the method with `original=True`.
         left, right = self.slits.select_edges()
 
+        # TODO: Recreate the slit ID image here?
+        # TODO: skysub.global_skysub always used the default trim_edg
+        # of (3,3). Make this a parameter.
+        edgemask = self.slits.slit_edge_img(trim=3, slitid_img=self.slitmask)
+        slitspat = self.slits.spatial_coordinate_image(slitid_img=self.slitmask)
+        thisspat = slitspat.copy()
+
         # Loop on slits
         for slit in gdslits:
             msgs.info("Global sky subtraction for slit: {:d}".format(slit))
             thismask = (self.slitmask == slit)
             inmask = (self.sciImg.mask == 0) & thismask & skymask_now
+            thisspat[thismask] = slitspat[thismask]
+            thisspat[np.invert(thismask)] = 0.
             # Find sky
             self.global_sky[thismask] \
                     = skysub.global_skysub(self.sciImg.image, self.sciImg.ivar, self.tilts,
-                                           thismask, left, right, inmask=inmask, sigrej=sigrej,
+                                           thismask, edgemask==slit, thisspat, inmask=inmask,
+                                           sigrej=sigrej,
                                            bsp=self.par['reduce']['skysub']['bspline_spacing'],
                                            no_poly=self.par['reduce']['skysub']['no_poly'],
                                            pos_mask=(not self.ir_redux), show_fit=show_fit)
@@ -470,8 +489,7 @@ class Reduce:
         # Return
         return self.global_sky
 
-    def local_skysub_extract(self, waveimg, global_sky, sobjs,
-                             model_noise=True, spat_pix=None,
+    def local_skysub_extract(self, waveimg, global_sky, sobjs, model_noise=True, spat_pix=None,
                              show_profile=False, show_resids=False, show=False):
         """
         Dummy method for locak skysubtraction and extraction.
@@ -747,6 +765,12 @@ class MultiSlitReduce(Reduce):
         # select the latter, use the method with `original=True`.
         left, right = self.slits.select_edges()
 
+        # TODO: Recreate the slit ID image here?
+        edgemask = self.slits.slit_edge_img(trim=self.par['reduce']['findobj']['find_trim_edge'],
+                                            slitid_img=self.slitmask)
+        slitspat = self.slits.spatial_coordinate_image(slitid_img=self.slitmask)
+
+        thisspat = slitspat.copy()
         # Loop on slits
         for slit in gdslits:
             qa_title ="Finding objects on slit # {:d}".format(slit)
@@ -756,14 +780,15 @@ class MultiSlitReduce(Reduce):
             # Find objects
             specobj_dict = {'setup': self.setup, 'slitid': slit, #'orderindx': 999,
                             'det': self.det, 'objtype': self.objtype, 'pypeline': self.pypeline}
-
+            thisspat[thismask] = slitspat[thismask]
+            thisspat[np.invert(thismask)] = 0.
             # TODO we need to add QA paths and QA hooks. QA should be
             # done through objfind where all the relevant information
             # is. This will be a png file(s) per slit.
 
             sobjs_slit, skymask[thismask] = \
-                extract.objfind(image, thismask, left[:,slit], right[:,slit], inmask=inmask,
-                                ir_redux=self.ir_redux,
+                extract.objfind(image, thismask, edgemask==slit, thisspat, left[:,slit],
+                                right[:,slit], inmask=inmask, ir_redux=self.ir_redux,
                                 ncoeff=self.par['reduce']['findobj']['trace_npoly'],
                                 std_trace=std_trace,
                                 sig_thresh=self.par['reduce']['findobj']['sig_thresh'],
@@ -775,7 +800,8 @@ class MultiSlitReduce(Reduce):
                                 npoly_cont=self.par['reduce']['findobj']['find_npoly_cont'],
                                 fwhm=self.par['reduce']['findobj']['find_fwhm'],
                                 maxdev=self.par['reduce']['findobj']['find_maxdev'],
-                                qa_title=qa_title, nperslit=self.par['reduce']['findobj']['maxnumber'],
+                                qa_title=qa_title,
+                                nperslit=self.par['reduce']['findobj']['maxnumber'],
                                 debug_all=debug)
             sobjs.add_sobj(sobjs_slit)
 
@@ -791,10 +817,8 @@ class MultiSlitReduce(Reduce):
 
     # JFH TODO Should we reduce the number of iterations for standards or near-IR redux where the noise model is not
     # being updated?
-    def local_skysub_extract(self, waveimg, global_sky, sobjs,
-                             spat_pix=None, model_noise=True,
-                             show_resids=False,
-                             show_profile=False, show=False):
+    def local_skysub_extract(self, waveimg, global_sky, sobjs, spat_pix=None, model_noise=True,
+                             show_resids=False, show_profile=False, show=False):
         """
         Perform local sky subtraction, profile fitting, and optimal extraction slit by slit
 
@@ -826,6 +850,13 @@ class MultiSlitReduce(Reduce):
         # select the latter, use the method with `original=True`.
         left, right = self.slits.select_edges()
 
+        # TODO: Recreate the slit ID image here?
+        # TODO: Previous version always used the default trim_edg of
+        # (3,3). Make this a parameter.
+        edgemask = self.slits.slit_edge_img(trim=3, slitid_img=self.slitmask)
+        slitspat = self.slits.spatial_coordinate_image(slitid_img=self.slitmask)
+        thisspat = slitspat.copy()
+
         # Allocate the images that are needed
         # Initialize to mask in case no objects were found
         self.outmask = np.copy(self.sciImg.mask)
@@ -845,23 +876,27 @@ class MultiSlitReduce(Reduce):
         for slit in gdslits:
             msgs.info("Local sky subtraction and extraction for slit: {:d}".format(slit))
             thisobj = (self.sobjs.SLITID == slit) # indices of objects for this slit
-            if np.any(thisobj):
-                thismask = (self.slitmask == slit) # pixels for this slit
-                # True  = Good, False = Bad for inmask
-                inmask = (self.sciImg.mask == 0) & thismask
-                # Local sky subtraction and extraction
-                self.skymodel[thismask], self.objmodel[thismask], self.ivarmodel[thismask], \
-                    self.extractmask[thismask] = skysub.local_skysub_extract(
-                    self.sciImg.image, self.sciImg.ivar, self.tilts, self.waveimg, self.global_sky, self.sciImg.rn2img,
-                    thismask, left[:,slit], right[:, slit],
-                    self.sobjs[thisobj], spat_pix=spat_pix,
-                    model_full_slit=self.par['reduce']['extraction']['model_full_slit'],
-                    box_rad=self.par['reduce']['extraction']['boxcar_radius']/self.get_platescale(0), #self.spectrograph.detector[self.det-1]['platescale'],
-                    sigrej=self.par['reduce']['skysub']['sky_sigrej'],
-                    model_noise=model_noise, std=self.std_redux,
-                    bsp=self.par['reduce']['skysub']['bspline_spacing'],
-                    sn_gauss=self.par['reduce']['extraction']['sn_gauss'],
-                    inmask=inmask, show_profile=show_profile)
+            if not np.any(thisobj):
+                continue
+            thismask = (self.slitmask == slit) # pixels for this slit
+            # True  = Good, False = Bad for inmask
+            inmask = (self.sciImg.mask == 0) & thismask
+            thisspat[thismask] = slitspat[thismask]
+            thisspat[np.invert(thismask)] = 0.
+            # Local sky subtraction and extraction
+            self.skymodel[thismask], self.objmodel[thismask], self.ivarmodel[thismask], \
+                self.extractmask[thismask] \
+                        = skysub.local_skysub_extract(self.sciImg.image, self.sciImg.ivar,
+                                self.tilts, self.waveimg, self.global_sky, self.sciImg.rn2img,
+                                thismask, edgemask==slit, thisspat, left[:,slit], right[:,slit],
+                                self.sobjs[thisobj], spat_pix=spat_pix,
+                            model_full_slit=self.par['reduce']['extraction']['model_full_slit'],
+                box_rad=self.par['reduce']['extraction']['boxcar_radius']/self.get_platescale(0),
+                                sigrej=self.par['reduce']['skysub']['sky_sigrej'],
+                                model_noise=model_noise, std=self.std_redux,
+                                bsp=self.par['reduce']['skysub']['bspline_spacing'],
+                                sn_gauss=self.par['reduce']['extraction']['sn_gauss'],
+                                inmask=inmask, show_profile=show_profile)
 
         # Set the bit for pixels which were masked by the extraction.
         # For extractmask, True = Good, False = Bad
@@ -968,25 +1003,33 @@ class EchelleReduce(Reduce):
         # select the latter, use the method with `original=True`.
         left, right = self.slits.select_edges()
 
+        # TODO: Recreate the slit ID image here?
+        edgemask = self.slits.slit_edge_img(trim=self.par['reduce']['findobj']['find_trim_edge'],
+                                            slitid_img=self.slitmask)
+        orderspat = self.slits.spatial_coordinate_image(slitid_img=self.slitmask)
+
         # TODO This is a bad idea -- we want to find everything for standards
         #sig_thresh = 30.0 if std else self.redux_par['sig_thresh']
-        sobjs_ech, skymask[self.slitmask > -1] = extract.ech_objfind(
-            image, self.sciImg.ivar, self.slitmask, left, right, self.order_vec, self.maskslits,
-            spec_min_max=np.vstack((self.slits.specmin, self.slits.specmax)),
-            inmask=inmask, ir_redux=self.ir_redux, ncoeff=self.par['reduce']['findobj']['trace_npoly'],
-            hand_extract_dict=manual_extract_dict, plate_scale=plate_scale,
-            std_trace=std_trace,
-            specobj_dict=specobj_dict,sig_thresh=self.par['reduce']['findobj']['sig_thresh'],
-            show_peaks=show_peaks, show_fits=show_fits,
-            trim_edg=self.par['reduce']['findobj']['find_trim_edge'],
-            cont_fit=self.par['reduce']['findobj']['find_cont_fit'],
-            npoly_cont=self.par['reduce']['findobj']['find_npoly_cont'],
-            fwhm=self.par['reduce']['findobj']['find_fwhm'],
-            maxdev=self.par['reduce']['findobj']['find_maxdev'],
-            max_snr=self.par['reduce']['findobj']['ech_find_max_snr'],
-            min_snr=self.par['reduce']['findobj']['ech_find_min_snr'],
-            nabove_min_snr=self.par['reduce']['findobj']['ech_find_nabove_min_snr'],
-            show_trace=show_trace, debug=debug)
+        sobjs_ech, skymask[self.slitmask > -1] \
+                = extract.ech_objfind(image, self.sciImg.ivar, self.slitmask, edgemask, orderspat,
+                                      left, right, self.order_vec, self.maskslits,
+                                spec_min_max=np.vstack((self.slits.specmin, self.slits.specmax)),
+                                      inmask=inmask, ir_redux=self.ir_redux,
+                                      ncoeff=self.par['reduce']['findobj']['trace_npoly'],
+                                      hand_extract_dict=manual_extract_dict,
+                                      plate_scale=plate_scale, std_trace=std_trace,
+                                      specobj_dict=specobj_dict,
+                                      sig_thresh=self.par['reduce']['findobj']['sig_thresh'],
+                                      show_peaks=show_peaks, show_fits=show_fits,
+                                      trim_edg=self.par['reduce']['findobj']['find_trim_edge'],
+                                      cont_fit=self.par['reduce']['findobj']['find_cont_fit'],
+                                      npoly_cont=self.par['reduce']['findobj']['find_npoly_cont'],
+                                      fwhm=self.par['reduce']['findobj']['find_fwhm'],
+                                      maxdev=self.par['reduce']['findobj']['find_maxdev'],
+                                      max_snr=self.par['reduce']['findobj']['ech_find_max_snr'],
+                                      min_snr=self.par['reduce']['findobj']['ech_find_min_snr'],
+                        nabove_min_snr=self.par['reduce']['findobj']['ech_find_nabove_min_snr'],
+                                      show_trace=show_trace, debug=debug)
 
         # Steps
         self.steps.append(inspect.stack()[0][3])
@@ -998,9 +1041,9 @@ class EchelleReduce(Reduce):
 
     # JFH TODO Should we reduce the number of iterations for standards or near-IR redux where the noise model is not
     # being updated?
-    def local_skysub_extract(self, waveimg, global_sky, sobjs,
-                             spat_pix=None, model_noise=True, min_snr=2.0, fit_fwhm=False,
-                             show_profile=False, show_resids=False, show_fwhm=False, show=False):
+    def local_skysub_extract(self, waveimg, global_sky, sobjs, spat_pix=None, model_noise=True,
+                             min_snr=2.0, fit_fwhm=False, show_profile=False, show_resids=False,
+                             show_fwhm=False, show=False):
         """
         Perform local sky subtraction, profile fitting, and optimal extraction slit by slit
 
@@ -1023,7 +1066,9 @@ class EchelleReduce(Reduce):
         self.waveimg = waveimg
         self.global_sky = global_sky
 
-        # TODO: Is this already available from the __init__ or could it have been overwritten?
+        # TODO: Is this already available from the __init__ or could it
+        # have been overwritten? This could also be different from the
+        # one saved to sciImg...
         self.slitmask = self.slits.slit_img()
 
         # Select the edges to use: Selects the edges tweaked by the
@@ -1031,6 +1076,11 @@ class EchelleReduce(Reduce):
         # selects the original edges from EdgeTraceSet. To always
         # select the latter, use the method with `original=True`.
         left, right = self.slits.select_edges()
+
+        # TODO: Previous version always used the default trim_edg of
+        # (3,3). Make this a parameter.
+        edgemask = self.slits.slit_edge_img(trim=3, slitid_img=self.slitmask)
+        orderspat = self.slits.spatial_coordinate_image(slitid_img=self.slitmask)
 
         # Pulled out some parameters to make the method all easier to read
         bsp = self.par['reduce']['skysub']['bspline_spacing']
@@ -1044,8 +1094,9 @@ class EchelleReduce(Reduce):
                 = skysub.ech_local_skysub_extract(self.sciImg.image, self.sciImg.ivar,
                                                   self.sciImg.mask, self.tilts, self.waveimg,
                                                   self.global_sky, self.sciImg.rn2img,
-                                                  self.slits.nslits, left, right, self.slitmask,
-                                                  sobjs, self.order_vec, spat_pix=spat_pix,
+                                                  self.slits.nslits, self.slitmask, 
+                                                  edgemask, orderspat, left, right, sobjs,
+                                                  self.order_vec, spat_pix=spat_pix,
                                                   std=self.std_redux, fit_fwhm=fit_fwhm,
                                                   min_snr=min_snr, bsp=bsp,
                                                   box_rad_order=box_rad_order, sigrej=sigrej,

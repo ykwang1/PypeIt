@@ -225,8 +225,8 @@ def get_spat_bins(thismask_stack, trace_stack):
     return dspat_bins, dspat_stack
 
 
-def compute_coadd2d(ref_trace_stack, sciimg_stack, sciivar_stack, skymodel_stack, inmask_stack, tilts_stack,
-                    thismask_stack, waveimg_stack, wave_grid, weights='uniform'):
+def compute_coadd2d(ref_trace_stack, sciimg_stack, sciivar_stack, skymodel_stack, inmask_stack,
+                    tilts_stack, thismask_stack, waveimg_stack, wave_grid, weights='uniform'):
     """
     Construct a 2d co-add of a stack of PypeIt spec2d reduction outputs.
 
@@ -693,11 +693,12 @@ class CoAdd2d(object):
                 weights = self.use_weights
             # Perform the 2d coadd
             coadd_dict = compute_coadd2d(ref_trace_stack, self.stack_dict['sciimg_stack'],
-                                           self.stack_dict['sciivar_stack'],
-                                           self.stack_dict['skymodel_stack'], self.stack_dict['mask_stack'] == 0,
-                                           self.stack_dict['tilts_stack'], thismask_stack,
-                                           self.stack_dict['waveimg_stack'],
-                                           self.wave_grid, weights=weights)
+                                         self.stack_dict['sciivar_stack'],
+                                         self.stack_dict['skymodel_stack'],
+                                         self.stack_dict['mask_stack'] == 0,
+                                         self.stack_dict['tilts_stack'], thismask_stack,
+                                         self.stack_dict['waveimg_stack'],
+                                         self.wave_grid, weights=weights)
             coadd_list.append(coadd_dict)
 
         return coadd_list
@@ -1058,6 +1059,8 @@ class CoAdd2d(object):
                 sciivar_stack = np.zeros(shape_sci, dtype=float)
                 mask_stack = np.zeros(shape_sci, dtype=float)
                 slitmask_stack = np.zeros(shape_sci, dtype=float)
+                edgemask_stack = np.zeros(shape_sci, dtype=float)
+                slitspat_stack = np.zeros(shape_sci, dtype=float)
 
             # Slit Traces and slitmask
             # TODO: Don't understand this if statement
@@ -1072,7 +1075,19 @@ class CoAdd2d(object):
             tracefile = tracefiles[ifile]
             #
             slits_list.append(slits)
-            slitmask_stack[ifile, :, :] = slits.slit_img()
+
+            # TODO: Consider using the slit objects collected above to
+            # construct the following three images when they're needed.
+            # Looks like this is only in coadd() and compute_offsets().
+            # I think this means that we don't gain much by
+            # constructing them here, but should check.
+            slitmask_stack[ifile,:,:] = slits.slit_img()
+
+FIX TRIMEDGE
+            edgemask_stack[ifile,:,:] \
+                    = slits.slit_edge_img(trim=5, slitid_img=slitmask_stack[ifile,:,:])
+            slitspat_stack[ifile,:,:] \
+                    = slits.spatial_coordinate_image(slitid_img=slitmask_stack[ifile,:,:])
             waveimg_stack[ifile, :, :] = waveimg
             tilts_stack[ifile, :, :] = tilts['tilts']
             sciimg_stack[ifile, :, :] = sciimg
@@ -1106,14 +1121,12 @@ class CoAdd2d(object):
         #spectrograph = util.load_spectrograph(tslits_dict['spectrograph'])
 
         return dict(specobjs_list=specobjs_list, slits_list=slits_list,
-                    slitmask_stack=slitmask_stack,
-                    sciimg_stack=sciimg_stack, sciivar_stack=sciivar_stack,
-                    skymodel_stack=skymodel_stack, mask_stack=mask_stack,
-                    tilts_stack=tilts_stack, waveimg_stack=waveimg_stack,
-                    head1d_list=head1d_list, head2d_list=head2d_list,
-                    redux_path=redux_path,
-                    master_key_dict=master_key_dict,
-                    spectrograph=self.spectrograph.spectrograph,
+                    slitmask_stack=slitmask_stack, edgemask_stack=edgemask_stack,
+                    slitspat_stack=slitspat_stack, sciimg_stack=sciimg_stack,
+                    sciivar_stack=sciivar_stack, skymodel_stack=skymodel_stack,
+                    mask_stack=mask_stack, tilts_stack=tilts_stack, waveimg_stack=waveimg_stack,
+                    head1d_list=head1d_list, head2d_list=head2d_list, redux_path=redux_path,
+                    master_key_dict=master_key_dict, spectrograph=self.spectrograph.spectrograph,
                     pypeline=self.spectrograph.pypeline)
 
 # Multislit can coadd with:
@@ -1197,6 +1210,12 @@ class MultiSlit(CoAdd2d):
             (self.stack_dict['mask_stack'] == 0), sci_list, var_list)
         thismask = np.ones_like(sci_list_rebin[0][0,:,:],dtype=bool)
         nspec_pseudo, nspat_pseudo = thismask.shape
+        # Select pixels within find_trim_edge of the image
+        edgegpm = np.zeros(thismask.shape, dtype=bool)
+        edgegpm[:,:self.par['reduce']['findobj']['find_trim_edge'][0]] = True
+        edgegpm[:,-self.par['reduce']['findobj']['find_trim_edge'][0]:] = True
+        # Setup the normalized spatial location
+        slitspat = np.tile(np.arange(nspat_pseudo).astype(float), (nspec_pseudo,1))/nspat_pseudo
         slit_left = np.full(nspec_pseudo, 0.0)
         slit_righ = np.full(nspec_pseudo, nspat_pseudo)
         inmask = norm_rebin_stack > 0
@@ -1205,14 +1224,17 @@ class MultiSlit(CoAdd2d):
         #specobj_dict = {'setup': 'unknown', 'slitid': 999, 'orderindx': 999, 'det': self.det, 'objtype': 'unknown',
         #                'pypeline': 'MultiSLit' + '_coadd_2d'}
         for iexp in range(self.nexp):
-            sobjs_exp, _ = extract.objfind(sci_list_rebin[0][iexp,:,:], thismask, slit_left, slit_righ,
-                                           inmask=inmask[iexp,:,:], ir_redux=self.ir_redux,
-                                           fwhm=self.par['scienceimage']['findobj']['find_fwhm'],
-                                           trim_edg=self.par['scienceimage']['findobj']['find_trim_edge'],
-                                           npoly_cont=self.par['scienceimage']['findobj']['find_npoly_cont'],
-                                           maxdev=self.par['scienceimage']['findobj']['find_maxdev'],
-                                           ncoeff=3, sig_thresh=self.par['scienceimage']['findobj']['sig_thresh'], nperslit=1,
-                                           show_trace=self.debug_offsets, show_peaks=self.debug_offsets)
+            sobjs_exp, _ = extract.objfind(sci_list_rebin[0][iexp,:,:], thismask, edgegpm,
+                                           slitspat, slit_left, slit_righ, inmask=inmask[iexp,:,:],
+                                           ir_redux=self.ir_redux,
+                                           fwhm=self.par['reduce']['findobj']['find_fwhm'],
+                                           trim_edg=self.par['reduce']['findobj']['find_trim_edge'],
+                                    npoly_cont=self.par['reduce']['findobj']['find_npoly_cont'],
+                                           maxdev=self.par['reduce']['findobj']['find_maxdev'],
+                                           ncoeff=3,
+                                           sig_thresh=self.par['reduce']['findobj']['sig_thresh'],
+                                           nperslit=1, show_trace=self.debug_offsets,
+                                           show_peaks=self.debug_offsets)
             sobjs.add_sobj(sobjs_exp)
             traces_rect[:, iexp] = sobjs_exp.TRACE_SPAT
         # Now deterimine the offsets. Arbitrarily set the zeroth trace to the reference

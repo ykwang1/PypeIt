@@ -1055,12 +1055,16 @@ def create_skymask_fwhm(sobjs, thismask):
         else:
             return skymask
 
-
-def objfind(image, thismask, slit_left, slit_righ, inmask=None, fwhm=3.0, maxdev=2.0, ir_redux=False, spec_min_max=None,
-            hand_extract_dict=None, std_trace=None, extrap_npoly=3, ncoeff=5, nperslit=None, bg_smth=5.0,
-            extract_maskwidth=4.0, sig_thresh=10.0, peak_thresh=0.0, abs_thresh=0.0, trim_edg=(5,5),
-            skymask_nthresh=1.0, specobj_dict=None, cont_fit=True, npoly_cont=1,
-            show_peaks=False, show_fits=False, show_trace=False, show_cont=False, debug_all=False, qa_title='objfind'):
+# TODO: Need to rethink whether or not the explicit left and right
+# values need to be passed now with the addition of the edgegpm and
+# slitspat images to the input. Also need to consolidate use of
+# trim_edg. See the not in the code where trim_edg is used.
+def objfind(image, thismask, edgegpm, slitspat, slit_left, slit_righ, inmask=None, fwhm=3.0,
+            maxdev=2.0, ir_redux=False, spec_min_max=None, hand_extract_dict=None, std_trace=None,
+            extrap_npoly=3, ncoeff=5, nperslit=None, bg_smth=5.0, extract_maskwidth=4.0,
+            sig_thresh=10.0, peak_thresh=0.0, abs_thresh=0.0, trim_edg=(5,5), skymask_nthresh=1.0,
+            specobj_dict=None, cont_fit=True, npoly_cont=1, show_peaks=False, show_fits=False,
+            show_trace=False, show_cont=False, debug_all=False, qa_title='objfind'):
 
     """
     Find the location of objects in a slitmask slit or a echelle order.
@@ -1079,6 +1083,15 @@ def objfind(image, thismask, slit_left, slit_righ, inmask=None, fwhm=3.0, maxdev
             Boolean mask image specifying the pixels which lie on the
             slit/order to search for objects on.  The convention is:
             True = on the slit/order, False  = off the slit/order
+        edgegpm (`numpy.ndarray`):
+            Boolean array selecting pixels on the edges of the slit.
+            True means on the edge, False is off the edge. Shape must
+            be the same as ``image``.
+        slitspat (`numpy.ndarray`):
+            Array providing the spatial coordinates of each pixel in
+            the slit (as given by ``thismask``) relative to the left
+            edge and normalized by the wavelength-dependent slit
+            spatial extent.  Shape must be the same as ``image``.
         slit_left:  float ndarray
             Left boundary of slit/order to be extracted (given as
             floating pt pixels). This a 1-d array with shape (nspec, 1)
@@ -1208,7 +1221,7 @@ def objfind(image, thismask, slit_left, slit_righ, inmask=None, fwhm=3.0, maxdev
 
     slit_spat_pos = (np.interp(slit_spec_pos, spec_vec, slit_left), np.interp(slit_spec_pos, spec_vec, slit_righ))
 
-    ximg, edgmask = pixels.ximg_and_edgemask(slit_left, slit_righ, thismask, trim_edg=trim_edg)
+#    ximg, edgmask = pixels.ximg_and_edgemask(slit_left, slit_righ, thismask, trim_edg=trim_edg)
 
     # If a mask was not passed in, create it
     if inmask is None:
@@ -1219,8 +1232,8 @@ def objfind(image, thismask, slit_left, slit_righ, inmask=None, fwhm=3.0, maxdev
         spec_min_max = (ispec.min(), ispec.max())
 
 
-    totmask = thismask & inmask & np.invert(edgmask)
-    thisimg =image*totmask
+    totmask = thismask & inmask & np.invert(edgegpm)
+    thisimg = image * totmask
     #  Smash the image (for this slit) into a single flux vector.  How many pixels wide is the slit at each Y?
     xsize = slit_righ - slit_left
     #nsamp = np.ceil(np.median(xsize)) # JFH Changed 07-07-19
@@ -1318,18 +1331,29 @@ def objfind(image, thismask, slit_left, slit_righ, inmask=None, fwhm=3.0, maxdev
         pass
 
     # Now find all the peaks without setting any threshold
-    ypeak, _, xcen, sigma_pk, _, good_indx, _, _ = arc.detect_lines(fluxconv_cont, cont_subtract = False, fwhm = fwhm,
-                                                                    max_frac_fwhm = 5.0, input_thresh = 'None', debug=False)
+    ypeak, _, xcen, sigma_pk, _, good_indx, _, _ \
+            = arc.detect_lines(fluxconv_cont, cont_subtract=False, fwhm=fwhm, max_frac_fwhm=5.0,
+                               input_thresh='None', debug=False)
     ypeak = ypeak[good_indx]
     xcen = xcen[good_indx]
-    # Get rid of peaks within trim_edg of slit edge which are almost always spurious, this should have been handled
-    # with the edgemask, but we do it here anyway
+     
+    # TODO: Need to check that this is actually needed. If not, then
+    # trim_edg can be removed as a parameter. With the edit to how
+    # edgegpm is constructed, this leaves open the possibility that the
+    # trim value used to construct the edgegpm is different from the
+    # value used here.
+
+    # Get rid of peaks within trim_edg of slit edge which are almost
+    # always spurious, this should have been handled with the edgemask,
+    # but we do it here anyway
     not_near_edge = (xcen > trim_edg[0]) & (xcen < (nsamp - trim_edg[1]))
     if np.any(np.invert(not_near_edge)):
-        msgs.warn('Discarding {:d}'.format(np.sum(np.invert(not_near_edge))) +
-                  ' at spatial pixels spat = {:}'.format(xcen[np.invert(not_near_edge)]) +
-                  ' which land within trim_edg = (left, right) = {:}'.format(trim_edg) +
-                  ' pixels from the slit boundary for this nsamp = {:5.2f}'.format(nsamp) + ' wide slit')
+        # TODO: put all of this in a single call to msgs.warn.
+        msgs.warn('Discarding {:d}'.format(np.sum(np.invert(not_near_edge)))
+                  + ' at spatial pixels spat = {:}'.format(xcen[np.invert(not_near_edge)])
+                  + ' which land within trim_edg = (left, right) = {:}'.format(trim_edg)
+                  + ' pixels from the slit boundary for this nsamp = {:5.2f}'.format(nsamp)
+                  + ' wide slit')
         msgs.warn('You must decrease from the current value of trim_edg in order to keep them')
         msgs.warn('Such edge objects are often spurious')
 
@@ -1529,8 +1553,9 @@ def objfind(image, thismask, slit_left, slit_righ, inmask=None, fwhm=3.0, maxdev
             thisobj.hand_extract_det = hand_extract_det[iobj]
             thisobj.hand_extract_fwhm = hand_extract_fwhm[iobj]
             thisobj.hand_extract_flag = True
-            f_ximg = scipy.interpolate.RectBivariateSpline(spec_vec, spat_vec, ximg)
-            thisobj.SPAT_FRACPOS = f_ximg(thisobj.hand_extract_spec, thisobj.hand_extract_spat, grid=False) # interpolate from ximg
+            f_spat = scipy.interpolate.RectBivariateSpline(spec_vec, spat_vec, slitspat)
+            thisobj.SPAT_FRACPOS = f_spat(thisobj.hand_extract_spec, thisobj.hand_extract_spat,
+                                          grid=False) # interpolate from ximg
             thisobj.smash_peakflux = np.interp(thisobj.SPAT_FRACPOS*nsamp,np.arange(nsamp),fluxconv_cont) # interpolate from fluxconv
             # assign the trace
             spat_0 = np.interp(thisobj.hand_extract_spec, spec_vec, trace_model)
@@ -1603,7 +1628,8 @@ def objfind(image, thismask, slit_left, slit_righ, inmask=None, fwhm=3.0, maxdev
 
     # Create an objmask. This is created here in case we decide to use it later, but it is not currently used
     skymask_objflux = np.copy(thismask)
-    skymask_objflux[thismask] = np.interp(ximg[thismask],xtmp,qobj) < (skymask_nthresh*threshold)
+    skymask_objflux[thismask] = np.interp(slitspat[thismask],xtmp,qobj) \
+                                    < (skymask_nthresh*threshold)
     # Still have to make the skymask
     skymask_fwhm = create_skymask_fwhm(sobjs,thismask)
     skymask = skymask_objflux | skymask_fwhm
@@ -1658,15 +1684,18 @@ def remap_orders(xinit, spec_min_max, inverse=False):
                                                              bounds_error=False, fill_value='extrapolate')(spec_vec_norm)
     return xinit_remap
 
+# TODO: See comments on trimedg in objfind
 
-def ech_objfind(image, ivar, slitmask, slit_left, slit_righ, order_vec, maskslits,
-                inmask=None, spec_min_max=None,
-                fof_link=1.5, plate_scale=0.2, ir_redux=False,
-                std_trace=None, extrap_npoly=3, ncoeff=5, npca=None, coeff_npoly=None, max_snr=2.0, min_snr=1.0, nabove_min_snr=2,
-                pca_explained_var=99.0, box_radius=2.0, fwhm=3.0, maxdev=2.0, hand_extract_dict=None, nperslit=5, bg_smth=5.0,
-                extract_maskwidth=3.0, sig_thresh = 10.0, peak_thresh=0.0, abs_thresh=0.0, specobj_dict=None,
-                trim_edg=(5,5), cont_fit=True, npoly_cont=1, show_peaks=False, show_fits=False, show_single_fits=False,
-                show_trace=False, show_single_trace=False, debug=False, show_pca=False, debug_all=False):
+def ech_objfind(image, ivar, slitmask, edgemask, orderspat, slit_left, slit_righ, order_vec,
+                maskslits, inmask=None, spec_min_max=None, fof_link=1.5, plate_scale=0.2,
+                ir_redux=False, std_trace=None, extrap_npoly=3, ncoeff=5, npca=None,
+                coeff_npoly=None, max_snr=2.0, min_snr=1.0, nabove_min_snr=2,
+                pca_explained_var=99.0, box_radius=2.0, fwhm=3.0, maxdev=2.0,
+                hand_extract_dict=None, nperslit=5, bg_smth=5.0, extract_maskwidth=3.0,
+                sig_thresh=10.0, peak_thresh=0.0, abs_thresh=0.0, specobj_dict=None,
+                trim_edg=(5,5), cont_fit=True, npoly_cont=1, show_peaks=False, show_fits=False,
+                show_single_fits=False, show_trace=False, show_single_trace=False, debug=False,
+                show_pca=False, debug_all=False):
     """
     Object finding routine for Echelle spectrographs. This routine:
        1) runs object finding on each order individually
@@ -1693,6 +1722,16 @@ def ech_objfind(image, ivar, slitmask, slit_left, slit_righ, order_vec, maskslit
             order. Pixels that are not on an order have value -1, and
             those that are on an order have a value equal to the slit
             number (i.e. 0 to nslits-1 from left to right on the image)
+        edgemask (`numpy.ndarray`):
+            Integer array identifying the order edge associated with
+            each pixel. Only pixels on an order edge have a value
+            that is > -1, and the value of the pixel is the relevant
+            order.  Shape must be the same as ``image``.
+        orderspat (`numpy.ndarray`):
+            Array providing the spatial coordinates of each pixel in
+            each order (as given by ``slitmask``) relative to the
+            left edge and normalized by the wavelength-dependent
+            spatial extent of the order.
         slit_left:  float ndarray
             Left boundary of orders to be extracted (given as floating
             pt pixels). This a 2-d array with shape (nspec, norders)
@@ -1819,6 +1858,7 @@ def ech_objfind(image, ivar, slitmask, slit_left, slit_righ, order_vec, maskslit
     for iord in range(norders):
         slit_spat_pos[iord, :] = (np.interp(slit_spec_pos, spec_vec, slit_left[:,iord]), np.interp(slit_spec_pos, spec_vec, slit_righ[:,iord]))
 
+    thisspat = orderspat.copy()
     # create the ouptut images skymask and objmask
     skymask_objfind = np.copy(allmask)
     # Loop over orders and find objects
@@ -1828,6 +1868,8 @@ def ech_objfind(image, ivar, slitmask, slit_left, slit_righ, order_vec, maskslit
     for iord in gdorders: #range(norders):
         msgs.info('Finding objects on order # {:d}'.format(order_vec[iord]))
         thismask = slitmask == iord
+        thisspat[thismask] = orderspat[thismask]
+        thisspat[np.invert(thismask)] = 0.
         inmask_iord = inmask & thismask
         specobj_dict['slitid'] = iord
         specobj_dict['orderindx'] = iord
@@ -1837,14 +1879,15 @@ def ech_objfind(image, ivar, slitmask, slit_left, slit_righ, order_vec, maskslit
         except TypeError:
             std_in = None
         sobjs_slit, skymask_objfind[thismask] = \
-            objfind(image, thismask, slit_left[:,iord], slit_righ[:,iord], spec_min_max=spec_min_max[:,iord],
-                    inmask=inmask_iord,std_trace=std_in, extrap_npoly=extrap_npoly, ncoeff=ncoeff, fwhm=fwhm, maxdev=maxdev,
-                    hand_extract_dict=hand_extract_dict, ir_redux=ir_redux,
-                    nperslit=nperslit, bg_smth=bg_smth, extract_maskwidth=extract_maskwidth, sig_thresh=sig_thresh,
-                    peak_thresh=peak_thresh, abs_thresh=abs_thresh, trim_edg=trim_edg, cont_fit=cont_fit,
-                    npoly_cont=npoly_cont, show_peaks=show_peaks,
-                    show_fits=show_single_fits, show_trace=show_single_trace,
-                    specobj_dict=specobj_dict)
+                objfind(image, thismask, edgemask==iord, thisspat, slit_left[:,iord],
+                        slit_righ[:,iord], spec_min_max=spec_min_max[:,iord], inmask=inmask_iord,
+                        std_trace=std_in, extrap_npoly=extrap_npoly, ncoeff=ncoeff, fwhm=fwhm,
+                        maxdev=maxdev, hand_extract_dict=hand_extract_dict, ir_redux=ir_redux,
+                        nperslit=nperslit, bg_smth=bg_smth, extract_maskwidth=extract_maskwidth,
+                        sig_thresh=sig_thresh, peak_thresh=peak_thresh, abs_thresh=abs_thresh,
+                        trim_edg=trim_edg, cont_fit=cont_fit, npoly_cont=npoly_cont,
+                        show_peaks=show_peaks, show_fits=show_single_fits,
+                        show_trace=show_single_trace, specobj_dict=specobj_dict)
         sobjs.add_sobj(sobjs_slit)
 
     nfound = len(sobjs)
