@@ -154,9 +154,7 @@ class Calibrations(object):
 
         """
         # TODO: I think all of these should change to the relevant class
-        # objects, particularly if we're going to allow a class (e.g.,
-        # FlatField) to alter the internals of another classe (e.g.,
-        # TraceSlits)
+        # objects.
         self.shape = None
         self.msarc = None
         self.msbias = None
@@ -619,7 +617,7 @@ class Calibrations(object):
 
     # TODO: if write_qa need to provide qa_path!
     # TODO: why do we allow redo here?
-    def get_slits(self, redo=False, write_qa=True):
+    def get_slits(self, redo=False, write_qa=None):
         """
         Load or generate the definition of the slit boundaries.
 
@@ -627,17 +625,24 @@ class Calibrations(object):
         :attr:`calib_ID`, :attr:`det`.
 
         Args:
-            redo (bool): Redo
-            write_qa (bool, optional):
-              Generate the QA?  Turn off for testing..
+            redo (:obj:`bool`, optional):
+                If the slits are already available in the cache,
+                recreate and overwrite them.
+            write_qa (:obj:`bool`, optional):
+                Flag to override the internal flag setting whether or
+                not the QA should be produced. If None, the internal
+                attribute is used. Note that if this is set to True,
+                the object *must* have a defined :attr:`qa_path`.
 
         Returns:
-            Returns the :class:`SlitTraceSet` object (also kept
-            internally as :attr:`slits`) and the slit mask array
-            (numpy.ndarray; also kept internally as
-            :attr:`maskslits`)
-
+            :class:`pypeit.slittrace.SlitTraceSet`: The object (also
+            kept internally as :attr:`slits`) containing the slit
+            boundaries.
         """
+        # Check input
+        _write_qa = self.write_qa if write_qa is None else write_qa
+        if _write_qa and self.qa_path is None:
+            msgs.error('QA path is not defined.  Cannot produce slit QA plots.')
         # Check for existing data
         if not self._chk_objs(['msbpm']):
             self.slits = None
@@ -669,7 +674,7 @@ class Calibrations(object):
             self.edges = edgetrace.EdgeTraceSet(self.spectrograph, self.par['slitedges'],
                                                 master_key=self.master_key_dict['trace'],
                                                 master_dir=self.master_dir,
-                                                qa_path=self.qa_path if write_qa else None)
+                                                qa_path=self.qa_path if _write_qa else None)
 
             if self.reuse_masters and self.edges.exists:
                 self.edges.load()
@@ -873,7 +878,7 @@ class Calibrations(object):
         if self.tilts_dict is None:
             # TODO still need to deal with syntax for LRIS ghosts. Maybe we don't need it
             self.tilts_dict, self.wt_maskslits \
-                    = self.waveTilts.run(maskslits=self.slits.mask, doqa=self.write_qa,
+                    = self.waveTilts.run(maskslits=self.slits.mask, write_qa=self.write_qa,
                                          show=self.show)
             if self.save_masters:
                 self.waveTilts.save()

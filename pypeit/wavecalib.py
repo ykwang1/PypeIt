@@ -161,6 +161,10 @@ class WaveCalib(masterframe.MasterFrame):
         Returns:
             dict:  self.wv_calib
         """
+        if not skip_QA and self.qa_path is None:
+            msgs.warn('No QA path defined.  QA will be skipped.')
+        write_qa = not skip_QA and self.qa_path is not None
+
         # Obtain a list of good slits
         ok_mask = np.where(np.invert(self.maskslits))[0]
         # Obtain calibration for all slits
@@ -251,7 +255,7 @@ class WaveCalib(masterframe.MasterFrame):
         ok_mask = np.where(np.invert(self.maskslits))[0]
 
         # QA
-        if not skip_QA:
+        if write_qa:
             for slit in ok_mask:
                 outfile = qa.set_qa_filename(self.master_key, 'arc_fit_qa', slit=slit,
                                              out_dir=self.qa_path)
@@ -275,6 +279,10 @@ class WaveCalib(masterframe.MasterFrame):
             dict: dictionary containing information from 2-d fit
 
         """
+        if not skip_QA and self.qa_path is None:
+            msgs.warn('No QA path defined.  QA will be skipped.')
+        write_qa = not skip_QA and self.qa_path is not None
+
         msgs.info('Fitting 2-d wavelength solution for echelle....')
         all_wave = np.array([], dtype=float)
         all_pixel = np.array([], dtype=float)
@@ -302,7 +310,7 @@ class WaveCalib(masterframe.MasterFrame):
         self.steps.append(inspect.stack()[0][3])
 
         # QA
-        if not skip_QA:
+        if write_qa:
             outfile_global = qa.set_qa_filename(self.master_key, 'arc_fit2d_global_qa',
                                                 out_dir=self.qa_path)
             arc.fit2darc_global_qa(fit2d_dict, outfile=outfile_global)

@@ -44,7 +44,7 @@ def test_step_by_step(master_dir):
     wavepar = parset['calibrations']['wavelengths']
     waveTilts = wavetilts.WaveTilts(msarc, edges.get_slits(), spectrograph, par, wavepar, det=1,
                                     master_key=master_key, master_dir=master_dir,
-                                    reuse_masters=True)
+                                    reuse_masters=True, qa_path=None)
     # Extract arcs
     arccen, arccen_bpm, maskslits = waveTilts.extract_arcs()
     assert arccen.shape == (2048,1)
@@ -62,7 +62,7 @@ def test_step_by_step(master_dir):
     spat_order = waveTilts._parse_param(waveTilts.par, 'spat_order', slit)
     spec_order = waveTilts._parse_param(waveTilts.par, 'spec_order', slit)
     coeffs = waveTilts.fit_tilts(trcdict, thismask, waveTilts.slitcen[:, slit], spat_order,
-                                 spec_order,slit, doqa=False)
+                                 spec_order, slit)
     tilts = tracewave.fit2tilts(waveTilts.slitmask_science.shape, coeffs, waveTilts.par['func2d'])
     assert np.max(tilts) < 1.01
 

@@ -128,7 +128,9 @@ class PypeIt(object):
         self.reuse_masters = reuse_masters
         self.show = show
 
-
+        # TODO: I think this should go back to being an @property
+        # method. I also think everything should always be relative to
+        # redux_path.
         # Set paths
         if self.par['calibrations']['caldir'] == 'default':
             self.calibrations_path = os.path.join(self.par['rdx']['redux_path'], 'Masters')
@@ -172,14 +174,16 @@ class PypeIt(object):
     @property
     def qa_path(self):
         """Return the path to the top-level QA directory."""
-        return os.path.join(self.par['rdx']['redux_path'], self.par['rdx']['qadir'])
+        return None if self.par['rdx']['qadir'] is None else \
+                    os.path.join(self.par['rdx']['redux_path'], self.par['rdx']['qadir'])
 
     def build_qa(self):
         """
         Generate QA wrappers
         """
-        qa.gen_mf_html(self.pypeit_file, self.qa_path)
-        qa.gen_exp_html()
+        if self.qa_path is not None:
+            qa.gen_mf_html(self.pypeit_file, self.qa_path)
+            qa.gen_exp_html()
 
     # TODO: This should go in a more relevant place
     def spec_output_file(self, frame, twod=False):
