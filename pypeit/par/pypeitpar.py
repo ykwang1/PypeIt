@@ -1563,7 +1563,8 @@ class ReduxPar(ParSet):
         defaults['qadir'] = 'QA'
         dtypes['qadir'] = str
         descr['qadir'] = 'Directory relative to calling directory to write quality ' \
-                         'assessment files.'
+                         'assessment files.  Set to \'none\' (the little n is important) to ' \
+                         'suppress construction of QA plots.'
 
         defaults['redux_path'] = os.getcwd()
         dtypes['redux_path'] = str
@@ -1612,8 +1613,10 @@ class ReduxPar(ParSet):
                 'gemini_gmos_south_ham', 'gemini_gmos_north_e2v', 'gemini_gmos_north_ham',
                 'magellan_fire', 'magellan_fire_long', 'magellan_mage', 'lbt_mods1r', 'lbt_mods1b',
                 'lbt_mods2r', 'lbt_mods2b', 'lbt_luci1', 'lbt_luci2', 'mmt_binospec']
+
     def validate(self):
-        pass
+        if self['qadir'] == 'none':
+            self['qadir'] = None
 
     
 class WavelengthSolutionPar(ParSet):

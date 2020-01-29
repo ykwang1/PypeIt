@@ -244,40 +244,52 @@ class WaveTilts(masterframe.MasterFrame):
 
 
     def fit_tilts(self, trc_tilt_dict, thismask, slit_cen, spat_order, spec_order, slit,
-                  show_QA=False, doqa=True, debug=False):
+                  write_qa=None, show_QA=False, debug=False):
         """
-        Fit the tilts
+        Fit the tilts.
 
         Args:
-            trc_tilt_dict (dict): Contains information from tilt tracing
-            slit_cen (ndarray): (nspec,) Central trace for this slit
-            spat_order (int): Order of the 2d polynomial fit for the spatial direction
-            spec_order (int): Order of the 2d polytnomial fit for the spectral direction
-            slit (int): integer index for the slit in question
-
-        Optional Args:
-            show_QA: bool, default = False
-                show the QA instead of writing it out to the outfile
-            doqa: bool, default = True
-                Construct the QA plot
-            debug: bool, default = False
+            trc_tilt_dict (dict):
+                Contains information from tilt tracing.
+            slit_cen (ndarray):
+                Central trace for this slit. Shape is (nspec,).
+            spat_order (int):
+                Order of the 2d polynomial fit for the spatial
+                direction.
+            spec_order (int):
+                Order of the 2d polytnomial fit for the spectral
+                direction.
+            slit (int):
+                Integer index for the slit in question.
+            write_qa (:obj:`bool`, optional):
+                Construct and write the QA files. If None, the QA
+                plots will be written if :attr:`qa_path` is defined.
+                An error is raised if ``write_qa`` is True and
+                :attr:`qa_path` is not defined.
+            show_QA (:obj:`bool`, optional):
+                Show the QA in an interactive matplotlib window
+                instead of writing it out to the outfile.
+            debug (:obj:`bool`, optional):
                 Show additional plots useful for debugging.
 
         Returns:
-           (tilts, coeffs)
-            tilts: ndarray (nspec, nspat)
-               tilts image
-            coeff: ndarray (spat_order + 1, spec_order+1)
-               Array containing the coefficients for the 2d legendre polynomial fit
+            `numpy.ndarray`_: Array containing the coefficients for
+            the 2d legendre polynomial fit. Shape is (spat_order + 1,
+            spec_order+1).
         """
+        _write_qa = self.qa_path is not None if write_qa is None else write_qa
+        if self.qa_path is None and _write_qa:
+             msgs.error('QA path is not defined.  Cannot produce slit QA plots.')
+        _qa_path = self.qa_path if _write_qa else None
+
         # Now perform a fit to the tilts
 #        tilt_fit_dict, trc_tilt_dict_out \
         self.all_fit_dict[slit], self.all_trace_dict[slit] \
                 = tracewave.fit_tilts(trc_tilt_dict, thismask, slit_cen, spat_order=spat_order,
                                       spec_order=spec_order,maxdev=self.par['maxdev2d'],
                                       sigrej=self.par['sigrej2d'], func2d=self.par['func2d'],
-                                      doqa=doqa, master_key=self.master_key, slit=slit,
-                                      show_QA=show_QA, out_dir=self.qa_path, debug=debug)
+                                      master_key=self.master_key, slit=slit, show_QA=show_QA,
+                                      qa_path=_qa_path, debug=debug)
 
         # Evaluate the fit
         #tilts = tracewave.fit2tilts((tilt_fit_dict['nspec'], tilt_fit_dict['nspat']), slit_cen,
@@ -455,7 +467,7 @@ class WaveTilts(masterframe.MasterFrame):
         cont_image[self.slitmask == -1] = 0.
         return cont_image
 
-    def run(self, maskslits=None, doqa=True, debug=False, show=False):
+    def run(self, maskslits=None, write_qa=None, debug=False, show=False):
         """
         Main driver for tracing arc lines
 
@@ -471,15 +483,27 @@ class WaveTilts(masterframe.MasterFrame):
 
         Args:
             maskslits (`numpy.ndarray`_, optional):
-                Boolean array to ignore slits.
-            doqa (bool):
-            debug (bool):
-            show (bool):
+                Boolean array to ignore slits. If None, all slits are
+                analyzed.
+            write_qa (:obj:`bool`, optional):
+                Construct and write the QA files. Passed directly to
+                :func:`fit_tilts`. If None, the QA plots will be
+                written if :attr:`qa_path` is defined. An error is
+                raised if ``write_qa`` is True and :attr:`qa_path` is
+                not defined.
+            debug (:obj:`bool`, optional):
+                Run in debug mode (creates workflow-halting plots
+                through the processing).
+            show (:obj:`bool`, optional):
+                Show QA plots throughout processing.
 
         Returns:
             dict, ndarray:  Tilts dict and maskslits array
 
         """
+        _write_qa = self.qa_path is not None if write_qa is None else write_qa
+        if self.qa_path is None and _write_qa:
+             msgs.error('QA path is not defined.  Cannot produce slit QA plots.')
 
         if maskslits is None:
             maskslits = np.zeros(self.nslits, dtype=bool)
@@ -565,7 +589,7 @@ class WaveTilts(masterframe.MasterFrame):
             # NOTE: This also fills in self.all_fit_dict and self.all_trace_dict
             coeff_out = self.fit_tilts(self.trace_dict, thismask, self.slitcen[:,slit],
                                        self.spat_order[slit], self.spec_order[slit], slit,
-                                       doqa=doqa, show_QA=show, debug=show)
+                                       write_qa=_write_qa, show_QA=show, debug=show)
             self.coeffs[:self.spec_order[slit]+1,:self.spat_order[slit]+1,slit] = coeff_out
 
             # Tilts are created with the size of the original slitmask,

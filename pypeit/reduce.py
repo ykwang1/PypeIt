@@ -13,7 +13,7 @@ from pypeit.core import skysub, extract, pixels, wave
 
 from IPython import embed
 
-class Reduce(object):
+class Reduce:
     """
     This class will organize and run actions related to
     finding objects, sky subtraction, and extraction for
@@ -26,17 +26,27 @@ class Reduce(object):
         caliBrate (pypeit.calibrations.Calibrations):
            This is only used as a container and it must contain the main products
            of WaveTilts, WaveImage, and EdgeTrace
-        det (int, optional):
-           Detector indice
-        setup (str, optional):
-           Used for naming
-        maskslits (ndarray, optional):
-          Specifies masked out slits
-          True = Masked
-        objtype (str, optional):
-           Specifies object being reduced 'science' 'standard' 'science_coadd2d'
+        ir_redux (:obj:`bool`, optional):
+            Flag to use IR reduction approach.
+        det (:obj:`int`, optional):
+            1-indexed detector number.
+        std_redux (:obj:`bool`, optional):
+            Flag that reduction is of a standard star. (KBW made this up...)
         show (bool, optional):
-           Show plots along the way?
+            Show plots along the way?
+        objtype (str, optional):
+            Specifies object being reduced 'science', 'standard',
+            'science_coadd2d'.
+        binning (:obj:`str, optional):
+            Pixel binning in the spectral and spatial dimensions.
+            E.g., '1,1'.
+        setup (:obj:`str`, optional):
+            Used for output file naming.
+        maskslits (`numpy.ndarray`_, optional):
+            Specifies slits to ignore. True = Masked.
+        qa_path (:obj:`str`, optional):
+            Directory for the QA plots. If None, no QA plots are
+            produced.
 
     Attributes:
         ivarmodel (np.ndarray):
@@ -59,14 +69,19 @@ class Reduce(object):
             Only object finding but no extraction
         sobjs (SpecObsj):
             Final extracted object list with trace corrections applied
+        qa_path (:obj:`str`):
+            See object argument list.
 
     """
 
     __metaclass__ = ABCMeta
 
+    # TODO: Shouldn't ir_redux be set by spectrograph?
+    # TODO: Are both std_redux and objtype needed?
+
     def __init__(self, sciImg, spectrograph, par, caliBrate,
                  ir_redux=False, det=1, std_redux=False, show=False,
-                 objtype='science', binning=None, setup=None, maskslits=None):
+                 objtype='science', binning=None, setup=None, maskslits=None, qa_path=None):
 
         # Setup the parameters sets for this object. NOTE: This uses objtype, not frametype!
 
@@ -96,6 +111,7 @@ class Reduce(object):
         self.binning = binning
         self.setup = setup
         self.pypeline = spectrograph.pypeline
+        self.qa_path = qa_path
         self.reduce_show = show
 
         self.steps = []
@@ -468,6 +484,7 @@ class Reduce(object):
 
         return None, None, None, None, None
 
+    # TODO: Basename is now only required if the qa is written
     def flexure_correct(self, sobjs, basename):
         """ Correct for flexure
 
@@ -485,8 +502,10 @@ class Reduce(object):
             flex_list = wave.flexure_obj(sobjs, self.maskslits, self.par['flexure']['method'],
                                          self.par['flexure']['spectrum'],
                                          mxshft=self.par['flexure']['maxshift'])
-            # QA
-            wave.flexure_qa(sobjs, self.maskslits, basename, self.det, flex_list,out_dir=self.par['rdx']['redux_path'])
+            if self.qa_path is not None:
+                # Construct the QA plots
+                wave.flexure_qa(sobjs, self.maskslits, basename, self.det, flex_list,
+                                self.qa_path)
         else:
             msgs.info('Skipping flexure correction.')
 

@@ -128,7 +128,9 @@ class PypeIt(object):
         self.reuse_masters = reuse_masters
         self.show = show
 
-
+        # TODO: I think this should go back to being an @property
+        # method. I also think everything should always be relative to
+        # redux_path.
         # Set paths
         if self.par['calibrations']['caldir'] == 'default':
             self.calibrations_path = os.path.join(self.par['rdx']['redux_path'], 'Masters')
@@ -143,6 +145,9 @@ class PypeIt(object):
         # TODO: Is anything written to the qa dir or only to qa/PNGs?
         # Should we have separate calibration and science QA
         # directories?
+
+        embed()
+        exit()
 
         # Instantiate Calibrations class
         self.caliBrate \
@@ -172,7 +177,8 @@ class PypeIt(object):
     @property
     def qa_path(self):
         """Return the path to the top-level QA directory."""
-        return os.path.join(self.par['rdx']['redux_path'], self.par['rdx']['qadir'])
+        return None if self.par['rdx']['qadir'] is None else \
+                    os.path.join(self.par['rdx']['redux_path'], self.par['rdx']['qadir'])
 
     def build_qa(self):
         """

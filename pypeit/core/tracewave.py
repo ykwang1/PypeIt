@@ -557,8 +557,7 @@ def trace_tilts(arcimg, lines_spec, lines_spat, thismask, slit_cen, inmask=None,
         msgs.info('TESTING: Performing an initial fit before PCA.')
         # JFH Note spec_order is hard wired here as we don't pass it in
         tilt_fit_dict0 = fit_tilts(trace_dict0, spat_order=spat_order, spec_order=6, debug=True,
-                                   maxdev=0.2, sigrej=3.0, doqa=True, setup='test', slit=0,
-                                   show_QA=True)
+                                   maxdev=0.2, sigrej=3.0, setup='test', slit=0, show_QA=True)
 
     # Do a PCA fit, which rejects some outliers
     iuse = trace_dict0['use_tilt']
@@ -580,7 +579,7 @@ def trace_tilts(arcimg, lines_spec, lines_spat, thismask, slit_cen, inmask=None,
 
 def fit_tilts(trc_tilt_dict, thismask, slit_cen, spat_order=3, spec_order=4, maxdev=0.2,
               maxrej=None, maxiter=100, sigrej=3.0, pad_spec=30, pad_spat=5, func2d='legendre2d',
-              doqa=True, master_key='test', slit=0, show_QA=False, out_dir=None, debug=False):
+              master_key='test', slit=0, show_QA=False, qa_path=None, debug=False):
     """
 
     Parameters
@@ -594,9 +593,8 @@ def fit_tilts(trc_tilt_dict, thismask, slit_cen, spat_order=3, spec_order=4, max
     func2D:
     maskval:
     setup:
-    doqa:
     show_QA:
-    out_dir:
+    qa_path:
 
     Returns
     -------
@@ -736,14 +734,14 @@ def fit_tilts(trc_tilt_dict, thismask, slit_cen, spat_order=3, spec_order=4, max
 
     # Now do some QA
     # TODO: I think we should do the QA outside of core functions.
-    if doqa:
+    if qa_path is not None or show_QA:
         plot_tilt_2d(tilts_dspat, tilts, tilts_2dfit, tot_mask, rej_mask, spat_order, spec_order,
-                     rms_fit, fwhm, slit=slit, setup=master_key, show_QA=show_QA, out_dir=out_dir)
+                     rms_fit, fwhm, slit=slit, setup=master_key, show_QA=show_QA, out_dir=qa_path)
         plot_tilt_spat(tilts_dspat, tilts, tilts_2dfit, tilts_spec, tot_mask, rej_mask, spat_order,
                        spec_order, rms_fit, fwhm, slit=slit, setup=master_key, show_QA=show_QA,
-                       out_dir=out_dir)
+                       out_dir=qa_path)
         plot_tilt_spec(tilts_spec, tilts, tilts_2dfit, tot_mask, rej_mask, rms_fit, fwhm,
-                       slit=slit, setup = master_key, show_QA=show_QA, out_dir=out_dir)
+                       slit=slit, setup = master_key, show_QA=show_QA, out_dir=qa_path)
 
     return tilt_fit_dict, trc_tilt_dict_out
 
@@ -818,15 +816,17 @@ def fit2tilts(shape, coeff2, func2d, spat_shift=0.0):
 def plot_tilt_2d(tilts_dspat, tilts, tilts_model, tot_mask, rej_mask, spat_order, spec_order, rms, fwhm,
                  slit=0, setup='A', outfile=None, show_QA=False, out_dir=None):
 
+    # Nothing to do!
+    if not show_QA and out_dir is None:
+        return
 
     plt.rcdefaults()
     plt.rcParams['font.family']= 'Helvetica'
 
     # Outfile
     method = inspect.stack()[0][3]
-    if (outfile is None):
+    if outfile is None:
         outfile = qa.set_qa_filename(setup, method, slit=slit, out_dir=out_dir)
-
 
     # Show the fit
     fig, ax = plt.subplots(figsize=(12, 18))
@@ -869,12 +869,16 @@ def plot_tilt_spec(tilts_spec_fit, tilts, tilts_model, tot_mask, rej_mask, rms, 
     ----------
     """
 
+    # Nothing to do!
+    if not show_QA and out_dir is None:
+        return
+
     plt.rcdefaults()
     plt.rcParams['font.family']= 'Helvetica'
 
     # Outfil
     method = inspect.stack()[0][3]
-    if (outfile is None):
+    if outfile is None:
         outfile = qa.set_qa_filename(setup, method, slit=slit, out_dir=out_dir)
 
     # Setup
@@ -947,12 +951,16 @@ def plot_tilt_spec(tilts_spec_fit, tilts, tilts_model, tot_mask, rej_mask, rms, 
 def plot_tilt_spat(tilts_dspat, tilts, tilts_model, tilts_spec_fit, tot_mask, rej_mask,spat_order, spec_order, rms, fwhm,
                    setup='A', slit=0, outfile=None, show_QA=False, out_dir=None):
 
+    # Nothing to do!
+    if not show_QA and out_dir is None:
+        return
+
     plt.rcdefaults()
     plt.rcParams['font.family']= 'Helvetica'
 
     # Outfil
     method = inspect.stack()[0][3]
-    if (outfile is None):
+    if outfile is None:
         outfile = qa.set_qa_filename(setup, method, slit=slit, out_dir=out_dir)
 
     nspat, nuse = tilts_dspat.shape

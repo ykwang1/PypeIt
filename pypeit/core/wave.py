@@ -614,8 +614,7 @@ def vactoair(wave):
 
 # TODO I don't see why maskslits is needed in these routine, since if the slits are masked in arms, they won't be extracted
 #  AND THIS IS WHY THE CODE IS CRASHING
-def flexure_qa(specobjs, maskslits, basename, det, flex_list,
-               slit_cen=False, out_dir=None):
+def flexure_qa(specobjs, maskslits, basename, det, flex_list, qa_path, slit_cen=False):
     """
 
     Args:
@@ -624,8 +623,11 @@ def flexure_qa(specobjs, maskslits, basename, det, flex_list,
         basename (str):
         det (int):
         flex_list (list):
+        qa_path (:obj:`str`):
+            Path to the top-level directory for the QA. See
+            ``out_dir`` parameter of
+            :func:`pypeit.core.qa.set_qa_filename`.
         slit_cen:
-        out_dir:
 
     """
     plt.rcdefaults()
@@ -654,7 +656,8 @@ def flexure_qa(specobjs, maskslits, basename, det, flex_list,
             continue
         nrow = nobj // ncol + ((nobj % ncol) > 0)
         # Outfile, one QA file per slit
-        outfile = qa.set_qa_filename(basename, method + '_corr', det=det,slit=(slit + 1), out_dir=out_dir)
+        outfile = qa.set_qa_filename(basename, method + '_corr', det=det, slit=slit+1,
+                                     out_dir=qa_path)
         plt.figure(figsize=(8, 5.0))
         plt.clf()
         gs = gridspec.GridSpec(nrow, ncol)
@@ -720,7 +723,8 @@ def flexure_qa(specobjs, maskslits, basename, det, flex_list,
             gdsky = gdsky[idx]
 
         # Outfile
-        outfile = qa.set_qa_filename(basename, method+'_sky', det=det,slit=(slit + 1), out_dir=out_dir)
+        outfile = qa.set_qa_filename(basename, method+'_sky', det=det, slit=slit+1,
+                                     out_dir=qa_path)
         # Figure
         plt.figure(figsize=(8, 5.0))
         plt.clf()
