@@ -181,8 +181,9 @@ class PypeIt(object):
         """
         Generate QA wrappers
         """
-        qa.gen_mf_html(self.pypeit_file, self.qa_path)
-        qa.gen_exp_html()
+        if self.qa_path is not None:
+            qa.gen_mf_html(self.pypeit_file, self.qa_path)
+            qa.gen_exp_html()
 
     # TODO: This should go in a more relevant place
     def spec_output_file(self, frame, twod=False):
