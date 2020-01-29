@@ -146,9 +146,6 @@ class PypeIt(object):
         # Should we have separate calibration and science QA
         # directories?
 
-        embed()
-        exit()
-
         # Instantiate Calibrations class
         self.caliBrate \
             = calibrations.MultiSlitCalibrations(self.fitstbl, self.par['calibrations'],
