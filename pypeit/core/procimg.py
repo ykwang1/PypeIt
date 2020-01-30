@@ -70,8 +70,8 @@ def lacosmic(det, sciframe, saturation, nonlinear, varframe=None, maxiter=1, gro
 
         msgs.info("Creating noise model")
         # Build a custom noise map, and compare  this to the laplacian
-        m5 = ndimage.filters.median_filter(scicopy, size=5, mode='mirror')
         if varframe is None:
+            m5 = ndimage.filters.median_filter(scicopy, size=5, mode='mirror')
             noise = np.sqrt(np.abs(m5))
         else:
             noise = np.sqrt(varframe)
