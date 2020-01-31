@@ -15,9 +15,9 @@ from matplotlib import pyplot as plt
 
 from IPython import embed
 
-from pypeit import msgs, utils, ginga
+from pypeit import msgs, utils, ginga, bspline
 from pypeit.images import maskimage
-from pypeit.core import pixels, extract, pydl
+from pypeit.core import pixels, extract, basis
 from pypeit.core.moment import moment1d
 
 def skysub_npoly(thismask):
@@ -156,7 +156,7 @@ def global_skysub(image, ivar, tilts, thismask, edgegpm, slitspat, inmask=None, 
         npoly_fit = 1
     else:
         npoly_fit = skysub_npoly(thismask) if npoly is None else npoly
-        poly_basis = pydl.flegendre(2.0*ximg_fit - 1.0, npoly_fit).T
+        poly_basis = basis.flegendre(2.0*ximg_fit - 1.0, npoly_fit)
 
     # Full fit now
     #full_bspline = pydl.bspline(wsky, nord=4, bkspace=bsp, npoly = npoly)
@@ -264,7 +264,7 @@ def skyoptimal(wave, data, ivar, oprof, sortpix, sigrej=3.0, npoly=1, spatial=No
         xmin = spatial.min()
         xmax = spatial.max()
         x2 = 2.0 * (spatial - xmin) / (xmax - xmin) - 1
-        poly_basis = pydl.flegendre(x2, npoly).T
+        poly_basis = basis.flegendre(x2, npoly)
         profile_basis = np.column_stack((oprof, poly_basis))
 
     relative_mask = (np.sum(oprof, axis=1) > 1e-10)
@@ -307,7 +307,8 @@ def skyoptimal(wave, data, ivar, oprof, sortpix, sigrej=3.0, npoly=1, spatial=No
         return np.zeros_like(wave), np.zeros_like(wave), outmask
 
     ncoeff = npoly + nobj
-    skyset = pydl.bspline(None, fullbkpt=sset.breakpoints, nord=sset.nord, npoly=npoly)
+#    skyset = pydl.bspline(None, fullbkpt=sset.breakpoints, nord=sset.nord, npoly=npoly)
+    skyset = bspline.bspline(None, fullbkpt=sset.breakpoints, nord=sset.nord, npoly=npoly)
     # Set coefficients for the sky.
     # The rehshape below deals with the different sizes of the coeff for npoly = 1 vs npoly > 1
     # and mirrors similar logic in the bspline.py
@@ -320,7 +321,8 @@ def skyoptimal(wave, data, ivar, oprof, sortpix, sigrej=3.0, npoly=1, spatial=No
     sky_bmodel, _ = skyset.value(wave, x2=spatial)
 
     obj_bmodel = np.zeros(sky_bmodel.shape)
-    objset = pydl.bspline(None, fullbkpt=sset.breakpoints, nord=sset.nord)
+#    objset = pydl.bspline(None, fullbkpt=sset.breakpoints, nord=sset.nord)
+    objset = bspline.bspline(None, fullbkpt=sset.breakpoints, nord=sset.nord)
     objset.mask = sset.mask
     for i in range(nobj):
         objset.coeff = sset.coeff[i, :]
@@ -367,7 +369,8 @@ def optimal_bkpts(bkpts_optimal, bsp_min, piximg, sampmask, samp_frac=0.80,
     pix = pix[isrt]
     piximg_min = pix.min()
     piximg_max = pix.max()
-    bset0 = pydl.bspline(pix, nord=4, bkspace=bsp_min)
+#    bset0 = pydl.bspline(pix, nord=4, bkspace=bsp_min)
+    bset0 = bspline.bspline(pix, nord=4, bkspace=bsp_min)
     fullbkpt_grid = bset0.breakpoints
     keep = (fullbkpt_grid >= piximg_min) & (fullbkpt_grid <= piximg_max)
     fullbkpt_grid = fullbkpt_grid[keep]
@@ -565,9 +568,9 @@ def local_skysub_extract(sciimg, sciivar, tilts, waveimg, global_sky, rn2_img, t
             which we allow.  If ``bkpts_optimal = False``, the
             break-points will be chosen to have a uniform spacing in
             pixel units sets by the bsp parameter, i.e.  using the
-            bkspace functionality of the pydl bspline class::
+            bkspace functionality of the bspline class::
 
-              bset = pydl.bspline(piximg_values, nord=4, bkspace=bsp)
+              bset = bspline.bspline(piximg_values, nord=4, bkspace=bsp)
               fullbkpt = bset.breakpoints
 
         debug_bkpts: bool, default=False
