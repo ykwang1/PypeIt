@@ -18,6 +18,8 @@ import numpy
 from astropy.io import fits
 from astropy.table import Table
 
+from pypeit import msgs
+
 # These imports are largely just to make the versions available for
 # writing to the header. See `initialize_header`
 import scipy
@@ -556,7 +558,7 @@ def write_to_fits(d, ofile, name=None, hdr=None, overwrite=False, checksum=True)
     # it directly
     # TODO: use pypmsgs?
     if _ofile is not ofile:
-        print('Compressing file: {0}'.format(_ofile))
+        msgs.info('Compressing file: {0}'.format(_ofile))
         compress_file(_ofile, overwrite=True)
-    print('File written to: {0}'.format(ofile))
+    msgs.info('File written to: {0}'.format(ofile))
 
