@@ -13,6 +13,8 @@ import gzip
 import shutil
 from packaging import version
 
+from IPython import embed
+
 import numpy
 
 from astropy.io import fits
@@ -27,7 +29,6 @@ import astropy
 import sklearn
 import pypeit
 import time
-from IPython import embed
 
 def init_record_array(shape, dtype):
     r"""
