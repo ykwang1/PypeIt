@@ -145,26 +145,36 @@ class GeminiGNIRSSpectrograph(spectrograph.Spectrograph):
 
     def config_specific_par(self, scifile, inp_par=None):
         """
-        Modify the PypeIt parameters to hard-wired values used for specific instrument configurations.
-
+        Modify the PypeIt parameters to hard-wired values used for
+        specific instrument configurations.
 
         Args:
-           scifile (str):
+            scifile (str):
                 File to use when determining the configuration and how
-                to adjust the input parameters.
-           inp_par (:class:`pypeit.par.parset.ParSet`, optional):
+                to adjust the input parameters.  Cannot be None.
+            inp_par (:class:`pypeit.par.parset.ParSet`, optional):
                 Parameter set used for the full run of PypeIt.  If None,
                 use :func:`default_pypeit_par`.
 
         Returns:
-           :class:`pypeit.par.parset.ParSet`: The PypeIt paramter set  adjusted for configuration specific parameter values.
+            :class:`pypeit.par.parset.ParSet`: The PypeIt paramter set
+            adjusted for configuration specific parameter values.
         """
+        if scifile is None:
+            msgs.error('File required to set {0} configuration specific parameters.'.format(
+                       self.spectrograph))
 
         par = self.default_pypeit_par() if inp_par is None else inp_par
 
-        # TODO This is a hack for now until we figure out how to set dispname and other meta information in the
-        # spectrograph class itself
-        self.dispname = self.get_meta_value(scifile, 'dispname')
+        # TODO: This is a hack for now until we figure out how to set
+        # dispname and other meta information in the spectrograph class
+        # itself.
+        # TODO: Is this required?
+        self.dispname = self.get_meta_value(scifile, 'dispname') #, required=True)
+
+        # TODO: Why are we assigning all of these parameters, instead
+        # of just the ones that are different from the default?
+        
         # 32/mmSB_G5533 setup, covering XYJHK with short blue camera
         if '32/mm' in self.dispname:
             # Edges
@@ -236,8 +246,7 @@ class GeminiGNIRSSpectrograph(spectrograph.Spectrograph):
             par['calibrations']['tilts']['sig_neigh'] = 5.0
             par['calibrations']['tilts']['nfwhm_neigh'] = 2.0
         else:
-            msgs.erro('Unrecognized GNIRS dispname')
-
+            msgs.error('Disperser {0} not recognized for {1}.'.format(dispname, self.spectrograph))
         return par
 
     def init_meta(self):

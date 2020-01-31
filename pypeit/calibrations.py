@@ -798,6 +798,8 @@ class Calibrations(object):
             return self.wv_calib
 
         # Grab arc binning (may be different from science!)
+        # TODO: The binning of the arc image should be an attribute of
+        # self.arcImage
         arc_rows = self.fitstbl.find_frames('arc', calib_ID=self.calib_ID, index=True)
         self.arc_files = self.fitstbl.frame_paths(arc_rows)
         binspec, binspat = parse.parse_binning(self.spectrograph.get_meta_value(self.arc_files[0],

@@ -174,7 +174,7 @@ class GeminiFLAMINGOS2Spectrograph(GeminiFLAMINGOSSpectrograph):
         Args:
             scifile (str):
                 File to use when determining the configuration and how
-                to adjust the input parameters.
+                to adjust the input parameters.  Cannot be None.
             inp_par (:class:`pypeit.par.parset.ParSet`, optional):
                 Parameter set used for the full run of PypeIt.  If None,
                 use :func:`default_pypeit_par`.
@@ -183,19 +183,28 @@ class GeminiFLAMINGOS2Spectrograph(GeminiFLAMINGOSSpectrograph):
             :class:`pypeit.par.parset.ParSet`: The PypeIt paramter set
             adjusted for configuration specific parameter values.
         """
-        par = self.default_pypeit_par() if inp_par is None else inp_par
-        # TODO: Should we allow the user to override these?
+        if scifile is None:
+            msgs.error('File required to set {0} configuration specific parameters.'.format(
+                       self.spectrograph))
 
-        if self.get_meta_value(scifile, 'dispname') == 'JH_G5801':
+        # TODO: Should we allow the user to override these defaults?
+
+        par = self.default_pypeit_par() if inp_par is None else inp_par
+
+        # Use the disperser to set the archived arclamp spectrum. Only
+        # read the file once.
+        # TODO: Should this be this required?
+        dispname = self.get_meta_value(scifile, 'dispname') #, required=True)
+        if dispname == 'JH_G5801':
             par['calibrations']['wavelengths']['method'] = 'full_template'
             par['calibrations']['wavelengths']['reid_arxiv'] = 'Flamingos2_JH_JH.fits'
-        elif self.get_meta_value(scifile, 'dispname') == 'HK_G5802':
+        elif dispname == 'HK_G5802':
             par['calibrations']['wavelengths']['method'] = 'full_template'
             par['calibrations']['wavelengths']['reid_arxiv'] = 'Flamingos2_HK_HK.fits'
-        # Return
+        else:
+            # TODO: Should this fault?
+            msgs.warn('Disperser {0} not recognized for {1}.'.format(dispname, self.spectrograph))
         return par
-
-
 
     def check_frame_type(self, ftype, fitstbl, exprng=None):
         """

@@ -176,7 +176,7 @@ class WHTISISBlueSpectrograph(WHTISISSpectrograph):
         Args:
             scifile (str):
                 File to use when determining the configuration and how
-                to adjust the input parameters.
+                to adjust the input parameters.  Cannot be None.
             inp_par (:class:`pypeit.par.parset.ParSet`, optional):
                 Parameter set used for the full run of PypeIt.  If None,
                 use :func:`default_pypeit_par`.
@@ -185,13 +185,20 @@ class WHTISISBlueSpectrograph(WHTISISSpectrograph):
             :class:`pypeit.par.parset.ParSet`: The PypeIt paramter set
             adjusted for configuration specific parameter values.
         """
+        if scifile is None:
+            msgs.error('File required to set {0} configuration specific parameters.'.format(
+                       self.spectrograph))
+       
         par = self.default_pypeit_par() if inp_par is None else inp_par
 
         # Wavelength calibrations
-        if self.get_meta_value(scifile, 'dispname') == 'R1200B':
+        # TODO: Is this required?
+        dispname = self.get_meta_value(scifile, 'dispname') #, required=True)
+        if dispname == 'R1200B':
             par['calibrations']['wavelengths']['reid_arxiv'] = 'wht_isis_blue_1200_4800.fits'
-
-        # Return
+        else:
+            # TODO: Should this fault?
+            msgs.warn('Disperser {0} not recognized for {1}.'.format(dispname, self.spectrograph))
         return par
 
     def check_frame_type(self, ftype, fitstbl, exprng=None):
@@ -302,7 +309,7 @@ class WHTISISRedSpectrograph(WHTISISSpectrograph):
         Args:
             scifile (str):
                 File to use when determining the configuration and how
-                to adjust the input parameters.
+                to adjust the input parameters.  Cannot be None.
             inp_par (:class:`pypeit.par.parset.ParSet`, optional):
                 Parameter set used for the full run of PypeIt.  If None,
                 use :func:`default_pypeit_par`.
@@ -311,13 +318,20 @@ class WHTISISRedSpectrograph(WHTISISSpectrograph):
             :class:`pypeit.par.parset.ParSet`: The PypeIt paramter set
             adjusted for configuration specific parameter values.
         """
+        if scifile is None:
+            msgs.error('File required to set {0} configuration specific parameters.'.format(
+                       self.spectrograph))
+       
         par = self.default_pypeit_par() if inp_par is None else inp_par
 
         # Wavelength calibrations
-        if self.get_meta_value(scifile, 'dispname') == 'R1200R':
+        # TODO: Is this required?
+        dispname = self.get_meta_value(scifile, 'dispname') #, required=True)
+        if dispname == 'R1200R':
             par['calibrations']['wavelengths']['reid_arxiv'] = 'wht_isis_red_1200_6000.fits'
-
-        # Return
+        else:
+            # TODO: Should this fault?
+            msgs.warn('Disperser {0} not recognized for {1}.'.format(dispname, self.spectrograph))
         return par
 
     def check_frame_type(self, ftype, fitstbl, exprng=None):

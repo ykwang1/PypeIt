@@ -72,8 +72,7 @@ class ProcessRawImage(object):
                           trim=False,
                           orient=False,
                           apply_gain=False,
-                          flatten=False,
-                          )
+                          flatten=False)
 
     @property
     def bpm(self):
@@ -86,9 +85,8 @@ class ProcessRawImage(object):
 
         """
         if self._bpm is None:
-            self._bpm = self.spectrograph.bpm(shape=self.image.shape,
-                                    filename=self.filename,
-                                    det=self.det)
+            self._bpm = self.spectrograph.bpm(shape=self.image.shape, filename=self.filename,
+                                              det=self.det)
         return self._bpm
 
     def apply_gain(self, force=False):

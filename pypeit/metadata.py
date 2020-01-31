@@ -170,11 +170,13 @@ class PypeItMetaData:
         data = {k:[] for k in self.spectrograph.meta.keys()}
         data['directory'] = ['None']*len(_files)
         data['filename'] = ['None']*len(_files)
+        
+        ignore_bad_header=self.par['rdx']['ignore_bad_headers']
 
         # Build the table
         for idx, ifile in enumerate(_files):
             # User data (for frame type)
-            usr_row = None if usrdata is None else usrdata[idx]
+            frametype = None if usrdata is None else usrdata[idx]['frametype']
 
             # Add the directory and file name to the table
             data['directory'][idx], data['filename'][idx] = os.path.split(ifile)
@@ -184,9 +186,9 @@ class PypeItMetaData:
 
             # Grab Meta
             for meta_key in self.spectrograph.meta.keys():
-                value = self.spectrograph.get_meta_value(headarr, meta_key, required=strict, usr_row=usr_row,
-                                        ignore_bad_header=self.par['rdx']['ignore_bad_headers'])
-                data[meta_key].append(value)
+                data[meta_key].append(self.spectrograph.get_meta_value(
+                                        headarr, meta_key, required=strict, frametype=frametype,
+                                        ignore_bad_header=self.par['rdx']['ignore_bad_headers']))
             msgs.info('Added metadata for {0}'.format(os.path.split(ifile)[1]))
 
         # JFH Changed the below to not crash if some files have None in their MJD. This is the desired behavior

@@ -182,6 +182,7 @@ class PypeIt(object):
         Generate QA wrappers
         """
         if self.qa_path is not None:
+            msgs.info('Generating QA HTML')
             qa.gen_mf_html(self.pypeit_file, self.qa_path)
             qa.gen_exp_html()
 
@@ -321,6 +322,7 @@ class PypeIt(object):
             msgs.info('Finished calibration group {0}'.format(i))
 
         # Finish
+        msgs.info('Data reduction complete')
         self.print_end_time()
 
     # This is a static method to allow for use in coadding script 

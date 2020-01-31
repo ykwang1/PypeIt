@@ -249,7 +249,7 @@ class KeckDEIMOSSpectrograph(spectrograph.Spectrograph):
         Args:
             scifile (str):
                 File to use when determining the configuration and how
-                to adjust the input parameters.
+                to adjust the input parameters.  Cannot be None.
             inp_par (:class:`pypeit.par.parset.ParSet`, optional):
                 Parameter set used for the full run of PypeIt.  If None,
                 use :func:`default_pypeit_par`.
@@ -258,6 +258,9 @@ class KeckDEIMOSSpectrograph(spectrograph.Spectrograph):
             :class:`pypeit.par.parset.ParSet`: The PypeIt paramter set
             adjusted for configuration specific parameter values.
         """
+        if scifile is None:
+            msgs.error('File required to set {0} configuration specific parameters.'.format(
+                       self.spectrograph))
         par = self.default_pypeit_par() if inp_par is None else inp_par
 
         headarr = self.get_headarr(scifile)
@@ -265,21 +268,28 @@ class KeckDEIMOSSpectrograph(spectrograph.Spectrograph):
         # Turn PCA off for long slits
         # TODO: I'm a bit worried that this won't catch all
         # long-slits...
-        if ('Long' in self.get_meta_value(headarr, 'decker')) or (
-                'LVMslit' in self.get_meta_value(headarr, 'decker')):
+        # TODO: Is this required?
+        decker = self.get_meta_value(headarr, 'decker') #, required=True)
+        if 'Long' in decker or 'LVMslit' in decker:
+            msgs.warn('Assuming that you are reducing long-slit data.')
             par['calibrations']['slitedges']['sync_predict'] = 'nearest'
 
         # Templates
-        if self.get_meta_value(headarr, 'dispname') == '600ZD':
+        # TODO: Is this required?
+        dispname = self.get_meta_value(headarr, 'dispname') #, required=True)
+        if dispname == '600ZD':
             par['calibrations']['wavelengths']['method'] = 'full_template'
             par['calibrations']['wavelengths']['reid_arxiv'] = 'keck_deimos_600.fits'
             par['calibrations']['wavelengths']['lamps'] += ['CdI', 'ZnI', 'HgI']
-        elif self.get_meta_value(headarr, 'dispname') == '830G':
+        elif dispname == '830G':
             par['calibrations']['wavelengths']['method'] = 'full_template'
             par['calibrations']['wavelengths']['reid_arxiv'] = 'keck_deimos_830G.fits'
-        elif self.get_meta_value(headarr, 'dispname') == '1200G':
+        elif dispname == '1200G':
             par['calibrations']['wavelengths']['method'] = 'full_template'
             par['calibrations']['wavelengths']['reid_arxiv'] = 'keck_deimos_1200G.fits'
+        else:
+            # TODO: Should this fault?
+            msgs.warn('Disperser {0} not recognized for {1}.'.format(dispname, self.spectrograph))
 
         # FWHM
         binning = parse.parse_binning(self.get_meta_value(headarr, 'binning'))
