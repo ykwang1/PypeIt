@@ -140,7 +140,11 @@ class Calibrations(object):
         self.calib_dict = {}
         self.det = None
         self.frame = None
-        self.binning = None
+
+        # TODO: Removing this because I don't think it's ever used. In
+        # any case, we should be relying on the binning established for
+        # each image, instead.
+#        self.binning = None
 
         # Steps
         self.steps = []
@@ -150,8 +154,7 @@ class Calibrations(object):
 
     def _reset_internals(self):
         """
-        Reset all of the key internals to None or an empty object
-
+        Reset all of the key internals to None or an empty object.
         """
         # TODO: I think all of these should change to the relevant class
         # objects.
@@ -233,30 +236,78 @@ class Calibrations(object):
         self.calib_dict[master_key][master_type] = {}
         return False
 
-    def set_config(self, frame, det, par=None):
+    def set_config(self, frame, det, par=None, calib_id=None, rm_cache=False):
         """
-        Specify the parameters of the Calibrations class and reset all
-        the internals to None. The internal dict is left unmodified.
+        Prepare the object for calibrations.
 
+        Method does the following:
+
+            - Reset all the relevant internal attributes; see
+              :func:`_reset_internals`.
+
+            - Set the detector
+
+            - If ``par`` is provided, replace the existing internal
+              :attr:`par`.
+
+            - Use ``frame`` to set the reference for the
+              calibrations. This is the *only* place where
+              :attr:`frame` is set. This frame is used to set:
+
+              - the calibration group,
+              - the master-frame key,
+              - and it identifies the frame that is passed to
+                :func:`pypeit.spectrographs.spectrograph.Spectrograph.bpm`
+                to set the bad-pixel mask.
+
+            - For any calibrations previously performed with this
+              object, the calibration cache (kept in
+              :attr:`calib_dict`) is *not* cleared, unless
+              ``rm_cache`` is True.
+        
         Args:
-            frame (int): Frame index in the fitstbl
-            det (int): Detector number
-            par (:class:`pypeit.par.pypeitpar.CalibrationPar`):
-
+            frame (:obj:`int`):
+                Frame index in :attr:`fitstbl` (see
+                :class:`pypeit.metadata.PypeItMetaData`). If
+                ``calib_id`` is not provided, this is also used to
+                set the calibration group.
+            det (:obj:`int`):
+                1-indexed detector number.
+            par (:class:`pypeit.par.pypeitpar.CalibrationPar`, optional):
+                The parameters to use during the calibirations. If
+                provided, these replace the current :attr:`par`.
+            calib_id (:obj:`int`, optional):
+                The calibration group ID. If None, this is determined
+                from :attr:`fitstbl` for the provided ``frame``.
+            rm_cache (:obj:`bool`, optional):
+                Erase any previously cached calibrations.
         """
+        # Check the input
+        if not isinstance(frame, int):
+            msgs.error('Must provide a single integer for frame.')
+
         # Reset internals to None
         # NOTE: This sets empties calib_ID and master_key_dict so must
         # be done here first before these things are initialized below.
         self._reset_internals()
 
+        if rm_cache:
+            # Remove cache
+            msgs.warn('Emptying calibration cache!')
+            self.calib_dict = {}
+
         # Initialize for this setup
         self.frame = frame
-        self.calib_ID = int(self.fitstbl['calib'][frame])
+        self.calib_ID = int(self.fitstbl['calib'][frame].split(',')[0]) if calib_id is None \
+                            else calib_id
+        if calib_id is None and ',' in self.fitstbl['calib'][frame]:
+            msgs.warn('Frame {0} is associated with more than  one calibration '.format(frame)
+                      + 'group.  Using the first one ({0}).'.format(self.calib_ID))
         self.det = det
         if par is not None:
             self.par = par
-        # Deal with binning
-        self.binning = self.fitstbl['binning'][self.frame]
+        # TODO: This has been removed.  See __init__
+#        self.binning = self.fitstbl['binning'][self.frame]
 
         # Initialize the master key dict for this science/standard frame
         self.master_key_dict['frame'] = self.fitstbl.master_key(frame, det=det)
@@ -443,6 +494,7 @@ class Calibrations(object):
             return self.msbpm
 
         # Build the data-section image
+        # TODO: Does this require that self.frame be a science frame?
         sci_image_file = self.fitstbl.frame_paths(self.frame)
 
         # Check if a bias frame exists, and if a BPM should be generated

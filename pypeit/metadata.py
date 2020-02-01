@@ -1038,6 +1038,41 @@ class PypeItMetaData:
         """
         return self.frame_paths(self.find_frames(ftype, calib_ID=calib_ID))
 
+    def find_frame_combinations(self, comb_id):
+        """
+        Find frames and background frames associated with a specific
+        combination ID.
+
+        The internal data table must have a ``comb_id`` column;
+        otherwise, the method will fault. If the internal table does
+        not have a ``bkg_id`` column, an empty array is returned
+        (identical to if there are no associated background frames).
+
+        Args:
+            comb_id (:obj:`int`):
+                ID number for the combination group.
+
+        Returns:
+            tuple: Returns two `numpy.ndarray`_ objects, the list of
+            frames in the combination group and any associated
+            background frames. If no frames are associated with the
+            provided combination group, an empty array is returned.
+            The same is true of the background frames.
+
+        Raises:
+            ValueError:
+                Raised if the internal tables does not have a
+                ``comb_id`` column.
+        """
+        frames = np.where(self['comb_id'] == comb_id)[0]
+        if len(frames) == 0:
+            return frames, np.array([])
+        # Find all frames whose comb_id matches the current
+        # frames bkg_id. NOTE: This allows frames to be used
+        # more than once as a background image.
+        return frames, np.where((self['comb_id'] == self['bkg_id'][frames][0]) 
+                                & (self['comb_id'] >= 0))[0]
+
     def frame_paths(self, indx):
         """
         Return the full paths to one or more frames.

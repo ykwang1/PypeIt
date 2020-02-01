@@ -25,12 +25,14 @@ from pypeit.metadata import PypeItMetaData
 
 from IPython import embed
 
-class PypeIt(object):
+class PypeIt:
     """
     This class runs the primary calibration and extraction in PypeIt
 
     .. todo::
-        Fill in list of attributes!
+        - Fill in list of attributes!
+        - Explain the setup.
+        - Give example usage.
 
     Args:
         pypeit_file (:obj:`str`):
@@ -64,8 +66,6 @@ class PypeIt(object):
         fitstbl (:obj:`pypit.metadata.PypeItMetaData`): holds the meta info
 
     """
-#    __metaclass__ = ABCMeta
-
     def __init__(self, pypeit_file, verbosity=2, overwrite=True, reuse_masters=False, logname=None,
                  show=False, redux_path=None):
 
@@ -82,17 +82,24 @@ class PypeIt(object):
 
         # --------------------------------------------------------------
         # Get the full set of PypeIt parameters
-        #   - Grab a science or standard file for configuration specific parameters
-        scistd_file = None
-        for idx, row in enumerate(usrdata):
-            if ('science' in row['frametype']) or ('standard' in row['frametype']):
-                scistd_file = data_files[idx]
-                break
+        #   - Grab a file for configuration specific parameters. Allowed
+        #     frame types for this are defined by the spectrograph
+        #     ``config_par_frametype`` method. The order of the frame
+        #     types in that list are treated as a prioritization.
+        config_ex_file = None
+        for f in self.spectrograph.config_par_frametype():
+            indx = np.isin([f], row['frametype'])
+            if not np.any(indx):
+                continue
+            config_ex_file = data_files[np.where(indx)[0][0]]
+            break
         #   - Configuration specific parameters for the spectrograph
-        if scistd_file is not None:
+        if config_ex_file is not None:
             msgs.info('Setting configuration-specific parameters using {0}'.format(
-                      os.path.split(scistd_file)[1]))
-        spectrograph_cfg_lines = self.spectrograph.config_specific_par(scistd_file).to_config()
+                      os.path.split(config_ex_file)[1]))
+        # NOTE: The call below will fault if the spectrograph requires
+        # a file to set the configuration specific parameters
+        spectrograph_cfg_lines = self.spectrograph.config_specific_par(config_ex_file).to_config()
         #   - Build the full set, merging with any user-provided
         #     parameters
         self.par = PypeItPar.from_cfg_lines(cfg_lines=spectrograph_cfg_lines, merge_with=cfg_lines)
@@ -142,9 +149,9 @@ class PypeIt(object):
         msgs.info('Master calibration data output to: {0}'.format(self.calibrations_path))
         msgs.info('Science data output to: {0}'.format(self.science_path))
         msgs.info('Quality assessment plots output to: {0}'.format(self.qa_path))
-        # TODO: Is anything written to the qa dir or only to qa/PNGs?
-        # Should we have separate calibration and science QA
-        # directories?
+
+        # TODO: Should we have separate calibration and science QA
+        # directories?  (Are there any "science" QA plots?)
 
         # Instantiate Calibrations class
         self.caliBrate \
@@ -179,7 +186,7 @@ class PypeIt(object):
 
     def build_qa(self):
         """
-        Generate QA wrappers
+        Generate QA HTML wrappers
         """
         if self.qa_path is not None:
             msgs.info('Generating QA HTML')
@@ -194,7 +201,7 @@ class PypeIt(object):
         Args:
             frame (:obj:`int`):
                 Frame index from :attr:`fitstbl`.
-            twod (:obj:`bool`):
+            twod (:obj:`bool`, optional):
                 Name for the 2D output file; 1D file otherwise.
         
         Returns:
@@ -205,27 +212,31 @@ class PypeIt(object):
 
     def outfile_exists(self, frame):
         """
-        Check whether the 2D outfile of a given frame already exists
+        Check whether the 2D outfile of a given frame already exists.
 
         Args:
-            frame (int): Frame index from fitstbl
+            frame (:obj:`int`):
+                Frame index from fitstbl
 
         Returns:
-            bool: True if the 2d file exists, False if it does not exist
+            :obj:`bool`: True if the 2d file exists, False if it does
+            not exist
         """
         return os.path.isfile(self.spec_output_file(frame, twod=True))
 
     def get_std_outfile(self, standard_frames):
         """
-        Grab the output filename from an input list of standard_frame indices
+        Grab the output filename from an input list of standard_frame
+        indices.
 
-        If more than one index is provided, the first is taken
+        If more than one index is provided, the first is taken.
 
         Args:
-            standard_frames (list): List of indices corresponding to standard stars
+            standard_frames (:obj:`list`):
+                List of indices corresponding to standard stars
 
         Returns:
-            str: Full path to the standard spec1d output file
+            :obj:`str`: Full path to the standard spec1d output file
         """
         # TODO: Need to decide how to associate standards with
         # science frames in the case where there is more than one
@@ -244,86 +255,146 @@ class PypeIt(object):
 
     def reduce_all(self):
         """
-        Main driver of the entire reduction
+        Main driver to perform all reductions.
 
-        Calibration and extraction via a series of calls to reduce_exposure()
+        The algorithm does the following:
+
+            - Checks that the appropriate parameter sets are defined.
+            - If no standard or science frames are present, all the
+              calibration groups are reduced. See
+              :func:`reduce_calibration_group`.
+            - If standard frames are available, all of the
+              combination groups with standard-star exposures are
+              reduced. See :func:`reduce_combination_group`.
+            - If science frames are available, all of the
+              combination groups with science exposures are reduced.
+              If standard frames were also reduced, the reduced
+              standard output is used in the reduction. See
+              :func:`reduce_combination_group`.
 
         """
         # Validate the parameter set
+        # TODO: Is this still correct?
+        # TODO: Can this be moved to the __init__?
         required = ['rdx', 'calibrations', 'scienceframe', 'reduce', 'flexure', 'fluxcalib']
         can_be_None = ['flexure', 'fluxcalib']
         self.par.validate_keys(required=required, can_be_None=can_be_None)
 
         self.tstart = time.time()
 
-        # Find the standard frames
+        # Find the standard and science frames
         is_standard = self.fitstbl.find_frames('standard')
-
-        # Find the science frames
         is_science = self.fitstbl.find_frames('science')
 
-        # Frame indices
-        frame_indx = np.arange(len(self.fitstbl))
+        # Allow the code to proceed by only reducing the calibrations
+        if np.sum(is_standard | is_science) == 0:
+            msgs.warn('No science or standard-star frames found.  Only calibration frames will '
+                      'be reduced.')
+            for i in range(self.fitstbl.n_calib_groups):
+                self.reduce_calibration_group(i)
 
-        # Iterate over each calibration group and reduce the standards
-        for i in range(self.fitstbl.n_calib_groups):
-
-            # Find all the frames in this calibration group
-            in_grp = self.fitstbl.find_calib_group(i)
-
-            # Find the indices of the standard frames in this calibration group:
-            grp_standards = frame_indx[is_standard & in_grp]
-
+        # Reduce any standards first
+        for i in range(self.fitstbl.n_calib_groups * int(np.sum(is_standard) > 0)):
             # Reduce all the standard frames, loop on unique comb_id
-            u_combid_std= np.unique(self.fitstbl['comb_id'][grp_standards])
-            for j, comb_id in enumerate(u_combid_std):
-                frames = np.where(self.fitstbl['comb_id'] == comb_id)[0]
-                bg_frames = np.where(self.fitstbl['bkg_id'] == comb_id)[0]
-                if not self.outfile_exists(frames[0]) or self.overwrite:
-                    std_dict = self.reduce_exposure(frames, bg_frames=bg_frames)
-                    # TODO come up with sensible naming convention for save_exposure for combined files
-                    self.save_exposure(frames[0], std_dict, self.basename)
-                else:
-                    msgs.info('Output file: {:s} already exists'.format(self.fitstbl.construct_basename(frames[0])) +
-                              '. Set overwrite=True to recreate and overwrite.')
+            grp_standards = frame_indx[is_standard & self.fitstbl.find_calib_group(i)]
+            for comb_id in enumerate(np.unique(self.fitstbl['comb_id'][grp_standards])):
+                self.reduce_combination_group(comb_id)
 
-        # Iterate over each calibration group again and reduce the science frames
-        for i in range(self.fitstbl.n_calib_groups):
-            # Find all the frames in this calibration group
-            in_grp = self.fitstbl.find_calib_group(i)
+        # Define the standard star to use during the science
+        # reductions.
+        # TODO: Allow for standards to be science-frame specific? If
+        # there's more than one standard, this just uses the first one.
+        stdfile = self.get_std_outfile(np.where(is_standard)[0]) if np.any(is_standard) else None
 
-            # Find the indices of the science frames in this calibration group:
-            grp_science = frame_indx[is_science & in_grp]
-            # Associate standards (previously reduced above) for this setup
-            std_outfile = self.get_std_outfile(frame_indx[is_standard])
-            # Reduce all the science frames; keep the basenames of the science frames for use in flux calibration
-            science_basename = [None]*len(grp_science)
-            # Loop on unique comb_id
-            u_combid = np.unique(self.fitstbl['comb_id'][grp_science])
-            for j, comb_id in enumerate(u_combid):
-                frames = np.where(self.fitstbl['comb_id'] == comb_id)[0]
-                # Find all frames whose comb_id matches the current frames bkg_id.
-                bg_frames = np.where((self.fitstbl['comb_id'] == self.fitstbl['bkg_id'][frames][0]) &
-                                     (self.fitstbl['comb_id'] >= 0))[0]
-                # JFH changed the syntax below to that above, which allows frames to be used more than once
-                # as a background image. The syntax below would require that we could somehow list multiple
-                # numbers for the bkg_id which is impossible without a comma separated list
-#                bg_frames = np.where(self.fitstbl['bkg_id'] == comb_id)[0]
-                if not self.outfile_exists(frames[0]) or self.overwrite:
-                    sci_dict = self.reduce_exposure(frames, bg_frames=bg_frames,
-                                                    std_outfile=std_outfile)
-                    science_basename[j] = self.basename
-                    # TODO come up with sensible naming convention for save_exposure for combined files
-                    self.save_exposure(frames[0], sci_dict, self.basename)
-                else:
-                    msgs.warn('Output file: {:s} already exists'.format(self.fitstbl.construct_basename(frames[0])) +
-                              '. Set overwrite=True to recreate and overwrite.')
+        # Reduce any science frames
+        for i in range(self.fitstbl.n_calib_groups * int(np.sum(is_standard) > 0)):
+            # Reduce all the standard frames, loop on unique comb_id
+            grp_science = frame_indx[is_science & self.fitstbl.find_calib_group(i)]
+            for comb_id in enumerate(np.unique(self.fitstbl['comb_id'][grp_science])):
+                self.reduce_combination_group(comb_id, stdfile=stdfile)
 
-            msgs.info('Finished calibration group {0}'.format(i))
-
-        # Finish
+        # Done
         msgs.info('Data reduction complete')
         self.print_end_time()
+
+    # TODO: Let the calibration group be something other than a
+    # 0-indexed running number?
+    def reduce_calibration_group(self, grp):
+        """
+        Only reduce the calibrations for the specified group.
+
+        This method follows the same algorithm as
+        :func:`reduce_exposure` without doing any science frame
+        reductions.
+
+        Args:
+            grp (:obj:`int`):
+                0-indexed calibration group to reduce.
+        """
+        # Check input
+        if grp < 0 or grp >= self.fitstbl.n_calib_groups:
+            msgs.error('Calibration group {0} is undefined!'.format(grp))
+
+        # Find all the frames in this calibration group
+        grp_frames = np.arange(len(self.fitstbl))[self.fitstbl.find_calib_group(grp)]
+        if len(grp_frames) == 0:
+            return
+
+        # If show is set, clear the ginga channels
+        if self.show:
+            # TODO: Put this in a try/except block?
+            ginga.clear_all()
+
+        # Print status message
+        msgs.info('Reducing calibration group {0}'.format(i))
+
+        # Find the detectors to reduce
+        detectors = PypeIt.select_detectors(detnum=self.par['rdx']['detnum'],
+                                            ndet=self.spectrograph.ndet)
+        if len(detectors) != self.spectrograph.ndet:
+            msgs.warn('Not reducing detectors: {0}'.format(' '.join([str(d) for d in 
+                                set(np.arange(self.spectrograph.ndet))-set(detectors)])))
+
+        # Loop on Detectors
+        # TODO: Attempt to put in a multiprocessing call here?
+        for self.det in detectors:
+            msgs.info("Working on detector {0}".format(self.det))
+            # Prep the calibrations for this group/detector
+            self.caliBrate.set_config(grp_frames[0], self.det, self.par['calibrations'],
+                                      calib_id=grp)
+            # Calibrate
+            self.caliBrate.run_the_steps()
+
+    def reduce_combination_group(self, comb_id, stdfile=None):
+        """
+        Reduce a combination group.
+
+        It is expected that science frames are reduced *after*
+        standard frames. To reduce all combination frames for both
+        standard and science frames in the correct order, use
+        :func:`reduce_all`.
+
+        Args:
+            comb_id (:obj:`int`):
+                The combination ID to reduce.
+            stdfile (:obj:`str`, optional):
+                If reducing a set of science frames, this is the name
+                of a file with a standard star reduction to use in
+                :func:`reduce_exposure`.
+        """
+        # Find the frames to combine and any associated background
+        # frames
+        frames, bg_frames = self.fitstbl.find_frame_combinations(comb_id)
+        if not self.outfile_exists(frames[0]) or self.overwrite:
+            std_dict = self.reduce_exposure(frames, bg_frames=bg_frames, std_outfile=stdfile)
+            # TODO come up with sensible naming convention for
+            # save_exposure for combined files
+            self.save_exposure(frames[0], std_dict, self.basename)
+        else:
+            # TODO: Should this fault?
+            msgs.warn('Output file: {:s} already exists'.format(
+                        self.fitstbl.construct_basename(frames[0]))
+                      + '. Set overwrite=True to recreate and overwrite.')
 
     # This is a static method to allow for use in coadding script 
     @staticmethod
@@ -340,85 +411,112 @@ class PypeIt(object):
                 if `detnum is None`.
 
         Returns:
-            list:  List of detectors to be reduced
-
+            :obj:`list`: List of detectors to be reduced.
         """
         if detnum is None:
             return np.arange(1, ndet+1).tolist()
         return [detnum] if isinstance(detnum, int) else detnum
 
+    # TODO: Need to rename this method.
     def reduce_exposure(self, frames, bg_frames=None, std_outfile=None):
         """
-        Reduce a single exposure
+        Reduce a set of standard or science frames.
 
+        The provided ``frames`` can be a single frame or a list of
+        frames to be combined. (To reduce exposures based on their
+        combination group, see :func:`reduce_combination_group`.) All
+        of the frames should be standard or science frames (but this
+        is not checked). First, the calibration groups associated
+        with these frames are reduced (see
+        :func:`pypeit.calibrations.Calibrations.run_the_steps`) and
+        then the standard/science frames are reduced using
+        :func:`extract_one`.
+
+        Importantly, the *first* frame is passed to
+        :func:`pypeit.calibrations.Calibrations.set_config`; see the
+        description of that function for how this frame is used. For
+        additional uses of only the *first* frame, see
+        :func:`extract_one`.
+        
         Args:
-            frame (:obj:`int`):
-                0-indexed row in :attr:`fitstbl` with the frame to
-                reduce.
-            bg_frames (:obj:`list`, optional):
-                List of frame indices for the background.
+            frames (array-like):
+                0-indexed row(s) in :attr:`fitstbl` with the frames
+                to reduce. Note that the first frame in this list is
+                passed to
+                :func:`pypeit.calibrations.Calibrations.set_config`.
+            bg_frames (array-like, optional):
+                List of frame indices for the background. Can be None
+                or an empty list.
             std_outfile (:obj:`str`, optional):
                 File with a previously reduced standard spectrum from
                 PypeIt.
 
         Returns:
-            dict: The dictionary containing the primary outputs of
-            extraction.
-
+            :obj:`dict`: The dictionary containing the primary
+            outputs of extraction.
         """
+        # Check the input
+        target = self.fitstbl['target'][frames[0]].strip()
+        if len(frames) > 0 \
+                and np.any([self.fitstbl['target'][f].strip() != target for f in frames]):
+            # TODO: Fault?
+            msgs.warn('All of the frames in this group do not have the same target!')
 
-        # TODO:
-        # - bg_frames should be None by default
-        # - change doc string to reflect that more than one frame can be
-        #   provided
-
-        # if show is set, clear the ginga channels at the start of each new sci_ID
+        # If show is set, clear the ginga channels at the start of each new sci_ID
         if self.show:
             # TODO: Put this in a try/except block?
             ginga.clear_all()
 
-        has_bg = True if bg_frames is not None and len(bg_frames) > 0 else False
+        # Are background frames provided?
+        # TODO: Do we need both this and self.ir_redux
+        has_bg = bg_frames is not None and len(bg_frames) > 0
 
-        # Is this an IR reduction?
+        # If so, assume this is an IR reduction?
         # TODO: Why specific to IR?
-        self.ir_redux = True if has_bg else False
-
-        # TODO: JFH Why does this need to be ordered?
-        sci_dict = OrderedDict()  # This needs to be ordered
-        sci_dict['meta'] = {}
-        sci_dict['meta']['ir_redux'] = self.ir_redux
+        self.ir_redux = has_bg
 
         # Print status message
-        msgs_string = 'Reducing target {:s}'.format(self.fitstbl['target'][frames[0]]) + msgs.newline()
         # TODO: Print these when the frames are actually combined,
         # backgrounds are used, etc?
-        msgs_string += 'Combining frames:' + msgs.newline()
+        msgs_string = 'Reducing target {:s}'.format(target) + msgs.newline() \
+                        + 'Combining frames:' + msgs.newline()
         for iframe in frames:
             msgs_string += '{0:s}'.format(self.fitstbl['filename'][iframe]) + msgs.newline()
-        msgs.info(msgs_string)
         if has_bg:
-            bg_msgs_string = ''
+            msgs_string += msgs.newline() + 'Using background from frames:' + msgs.newline()
             for iframe in bg_frames:
-                bg_msgs_string += '{0:s}'.format(self.fitstbl['filename'][iframe]) + msgs.newline()
-            bg_msgs_string = msgs.newline() + 'Using background from frames:' + msgs.newline() + bg_msgs_string
-            msgs.info(bg_msgs_string)
+                msgs_string += '{0:s}'.format(self.fitstbl['filename'][iframe]) + msgs.newline()
+        msgs.info(msgs_string)
 
         # Find the detectors to reduce
         detectors = PypeIt.select_detectors(detnum=self.par['rdx']['detnum'],
                                             ndet=self.spectrograph.ndet)
         if len(detectors) != self.spectrograph.ndet:
-            msgs.warn('Not reducing detectors: {0}'.format(' '.join([ str(d) for d in 
+            msgs.warn('Not reducing detectors: {0}'.format(' '.join([str(d) for d in 
                                 set(np.arange(self.spectrograph.ndet))-set(detectors)])))
+
+        # Instantiate the dictionary with the science data
+        # TODO: JFH Why does this need to be ordered?
+        sci_dict = OrderedDict()  # This needs to be ordered
+        sci_dict['meta'] = {}
+        sci_dict['meta']['ir_redux'] = self.ir_redux
 
         # Loop on Detectors
         # TODO: Attempt to put in a multiprocessing call here?
         for self.det in detectors:
             msgs.info("Working on detector {0}".format(self.det))
             sci_dict[self.det] = {}
+
+            # NOTE: From set_config, frame[0] is used to set the
+            # calibration group, the master-frame key, and it
+            # identifies the frame that is passed to
+            # :func:`pypeit.spectrographs.spectrograph.Spectrograph.bpm`
+            # to set the bad-pixel mask.
+
             # Calibrate
-            #TODO Is the right behavior to just use the first frame?
             self.caliBrate.set_config(frames[0], self.det, self.par['calibrations'])
             self.caliBrate.run_the_steps()
+
             # Extract
             # TODO: pass back the background frame, pass in background
             # files as an argument. extract one takes a file list as an
@@ -427,7 +525,7 @@ class PypeIt(object):
                 sci_dict[self.det]['skymodel'], sci_dict[self.det]['objmodel'], \
                 sci_dict[self.det]['ivarmodel'], sci_dict[self.det]['outmask'], \
                 sci_dict[self.det]['specobjs'], \
-                        = self.extract_one(frames, self.det, bg_frames,
+                        = self.extract_one(frames, self.det, bg_frames=bg_frames,
                                            std_outfile=std_outfile)
             # JFH TODO write out the background frame?
 
@@ -436,22 +534,25 @@ class PypeIt(object):
 
     def get_sci_metadata(self, frame, det):
         """
-        Grab the meta data for a given science frame and specific detector
+        Grab the meta data for a given science frame and detector.
 
         Args:
-            frame (int): Frame index
-            det (int): Detector index
+            frame (:obj:`int`):
+                0-indexed frame number.
+            det (:obj:`int`):
+                1-indexed detector number.
 
         Returns:
-            5 objects are returned::
-                - str: Object type;  science or standard
-                - str: Setup string from master_key()
-                - astropy.time.Time: Time of observation
-                - str: Basename of the frame
-                - str: Binning of the detector
-
+            :obj:`tuple`: Returns (1) the object type (either
+            standard or science), (2) the setup name (see
+            :func:`pypeit.metadata.PypeItMetaData.master_key`), (3)
+            the time of the observation as an `astropy.time.Time`_
+            object (see
+            :func:`pypeit.metadata.PypeItMetaData.construct_obstime),
+            (4) the "base name" for the output science files (see
+            :func:`pypeit.metadata.PypeItMetaData.construct_basename),
+            and (5) the detector binning (e.g., '1,1').
         """
-
         # Set binning, obstime, basename, and objtype
         binning = self.fitstbl['binning'][frame]
         obstime  = self.fitstbl.construct_obstime(frame)
@@ -462,28 +563,38 @@ class PypeIt(object):
         elif 'standard' in objtype:
             objtype_out = 'standard'
         else:
-            msgs.error('Unrecognized objtype')
+            msgs.error('Unrecognized object type.  Must be science or standard.')
         setup = self.fitstbl.master_key(frame, det=det)
         return objtype_out, setup, obstime, basename, binning
 
+    # TODO: Why can't std_redux be handled by the calling function?
+    # What does the explanation of std_redux mean? Add the shape
+    # information to the return docstring.
     def get_std_trace(self, std_redux, det, std_outfile):
         """
-        Returns the trace of the standard if it is applicable to the current reduction
+        Returns the trace of the standard if it is applicable to the
+        current reduction.
 
         Args:
-            std_redux (bool): If False, proceed
-            det (int): Detector index
-            std_outfile (str): Filename for the standard star spec1d file
+            std_redux (:obj:`bool`):
+                If False, proceed
+            det (:obj:`int`):
+                1-indexed detector number.
+            std_outfile (:obj:`str`):
+                "spec1d" file  with the standard star spectrum.
 
         Returns:
-            ndarray: Trace of the standard star on input detector
-
+            `numpy.ndarray`_: The trace of the standard star on the
+            input detector.
         """
+        # TODO: The nesting here is largely unnecessary. Use returns to
+        # interupt the control flow.
         if std_redux is False and std_outfile is not None:
             sobjs = specobjs.SpecObjs.from_fitsfile(std_outfile)
             # Does the detector match?
-            # TODO Instrument specific logic here could be implemented with the parset. For example LRIS-B or LRIS-R we
-            # we would use the standard from another detector
+            # TODO: Instrument specific logic here could be implemented
+            # with the parset. For example LRIS-B or LRIS-R we we would
+            # use the standard from another detector
             this_det = sobjs.DET == det
             if np.any(this_det):
                 sobjs_det = sobjs[this_det]
@@ -503,27 +614,38 @@ class PypeIt(object):
 
         return std_trace
 
-    def extract_one(self, frames, det, bg_frames, std_outfile=None):
+    # TODO: Need to rename this method.
+    # TODO: Can "frames" be an int?
+    def extract_one(self, frames, det, bg_frames=None, std_outfile=None):
         """
-        Extract a single exposure/detector pair
+        Reduce a single detector for a set of frames.
 
-        sci_ID and det need to have been set internally prior to calling this method
+        The calibrations must have already been completed before
+        calling this method. To ensure the calibrations are reduced
+        before this method is called, use :func:`reduce_exposure`. To
+        reduce exposures based on their combination group, use
+        :func:`reduce_combination_group`.
+
+        The list of frames (or observing set) should contain a list
+        of science (or standard) exposures in a single combination
+        group. Importantly, the *first* frame is passed to
+        :func:`get_sci_metadata` and used to set the relevant RA/DEC.
 
         Args:
             frames (:obj:`list`):
-                List of frames to extract; stacked if more than one
-                is provided
+                List of frames to extract. The frames are stacked if
+                more than one is provided.
             det (:obj:`int`):
-                Detector number (1-indexed)
-            bg_frames (:obj:`list`):
-                List of frames to use as the background. Can be
-                empty.
+                1-indexed detector.
+            bg_frames (:obj:`list`, optional):
+                List of frames to use as the background. Can be None
+                or an empty list.
             std_outfile (:obj:`str`, optional):
                 Filename for the standard star spec1d file. Passed
                 directly to :func:`get_std_trace`.
 
         Returns:
-            tuple: Returns six `numpy.ndarray`_ objects and a
+            :obj:`tuple`: Returns six `numpy.ndarray`_ objects and a
             :class:`pypeit.specobjs.SpecObjs` object with the
             extracted spectra from this exposure/detector pair. The
             six `numpy.ndarray`_ objects are (1) the science image,
@@ -556,7 +678,7 @@ class PypeIt(object):
             self.caliBrate.mspixelflat, illum_flat=illum_flat)
 
         # Background Image?
-        if len(bg_frames) > 0:
+        if bg_frames is not None and len(bg_frames) > 0
             bg_file_list = self.fitstbl.frame_paths(bg_frames)
             self.sciImg = self.sciImg - scienceimage.build_from_file_list(
                 self.spectrograph, det, self.par['scienceframe']['process'],
@@ -592,18 +714,28 @@ class PypeIt(object):
         # Prep for manual extraction (if requested)
         manual_extract_dict = self.fitstbl.get_manual_extract(frames, det)
 
-        self.skymodel, self.objmodel, self.ivarmodel, self.outmask, self.sobjs = self.redux.run(
-            std_trace=std_trace, manual_extract_dict=manual_extract_dict, show_peaks=self.show,
-            basename=self.basename, ra=self.fitstbl["ra"][frames[0]], dec=self.fitstbl["dec"][frames[0]],
-            obstime=self.obstime)
+        self.skymodel, self.objmodel, self.ivarmodel, self.outmask, self.sobjs \
+                = self.redux.run(std_trace=std_trace, manual_extract_dict=manual_extract_dict,
+                                 show_peaks=self.show, basename=self.basename,
+                                 ra=self.fitstbl["ra"][frames[0]],
+                                 dec=self.fitstbl["dec"][frames[0]], obstime=self.obstime)
 
         # Return
-        return self.sciImg.image, self.sciImg.ivar, self.skymodel, self.objmodel, self.ivarmodel, self.outmask, self.sobjs
+        return self.sciImg.image, self.sciImg.ivar, self.skymodel, self.objmodel, \
+                    self.ivarmodel, self.outmask, self.sobjs
 
     # TODO: Why not use self.frame?
     def save_exposure(self, frame, sci_dict, basename):
         """
-        Save the outputs from extraction for a given exposure
+        Save the extraction outputs.
+
+        This method should be called after the data have been reduced
+        using :func:`extract_one`. To reduce the relevant
+        calibrations, run the science reduction, and then save the
+        result, use :func:`reduce_exposure`.
+
+        This is a basic wrapper for
+        :func:`pypeit.core.save.save_all`.
 
         Args:
             frame (:obj:`int`):
@@ -614,10 +746,6 @@ class PypeIt(object):
                 extraction
             basename (:obj:`str`):
                 The root name for the output file.
-
-        Returns:
-            None or SpecObjs:  All of the objects saved to disk
-
         """
         # TODO: Need some checks here that the exposure has been reduced
 
@@ -636,16 +764,18 @@ class PypeIt(object):
 
     def msgs_reset(self):
         """
-        Reset the msgs object
+        Reset the pypeit logger.
         """
-
         # Reset the global logger
         msgs.reset(log=self.logname, verbosity=self.verbosity)
         msgs.pypeit_file = self.pypeit_file
 
     def print_end_time(self):
         """
-        Print the elapsed time
+        Print the elapsed time.
+
+        This uses the current value of :attr:`tstart` (currently only
+        defined in :func:`reduce_all`).
         """
         # Capture the end time and print it to user
         tend = time.time()
@@ -665,7 +795,7 @@ class PypeIt(object):
     # TODO: Move this to fitstbl?
     def show_science(self):
         """
-        Simple print of science frames
+        Simple print of science frames.
         """
         indx = self.fitstbl.find_frames('science')
         print(self.fitstbl[['target','ra','dec','exptime','dispname']][indx])

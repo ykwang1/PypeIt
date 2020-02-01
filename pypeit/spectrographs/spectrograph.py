@@ -153,6 +153,22 @@ class Spectrograph(object):
         # Return
         return nonlinear_counts
 
+    def config_par_frametypes(self):
+        """
+        Return the frame types that can be used to define the
+        configuration-specific parameters.
+
+        The list order can be placed in order of preference and will
+        be treated as such when initializing the
+        :class:`pypeit.pypeit.PypeIt` instance.
+
+        Returns:
+            :obj:`list`: A list of frametype strings with meta data
+            appropriate for defining the configuration-specific
+            parameters needed by the spectrograph.
+        """
+        return ['science', 'standard', 'arc', 'trace']
+
     def config_specific_par(self, scifile, inp_par=None):
         """
         Modify the PypeIt parameters to hard-wired values used for
