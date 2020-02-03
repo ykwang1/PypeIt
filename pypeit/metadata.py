@@ -364,7 +364,7 @@ class PypeItMetaData:
         if len(existing_keys) > 0 and match_type:
             for key in existing_keys:
                 if len(self.table[key].shape) > 1:  # NOT ALLOWED!!
-                    debugger.set_trace()
+                    embed()
                 elif key in meta_data_model.keys(): # Is this meta data??
                     dtype = meta_data_model[key]['dtype']
                 else:
