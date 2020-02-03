@@ -1503,20 +1503,41 @@ class ManualExtractionPar(ParSet):
         pass
 
 
-class ReduxPar(ParSet):
+class ExecutionPar(ParSet):
     """
-    The parameter set used to hold arguments for functionality relevant
-    to the overal reduction of the the data.
-    
+    Parameters needed for the overall control-flow of a full data
+    reduction.
+
     Critically, this parameter set defines the spectrograph that was
     used to collect the data and the overall pipeline used in the
     reductions.
-    
-    For a table with the current keywords, defaults, and descriptions,
-    see :ref:`pypeitpar`.
+
+    For a table with the current keywords, defaults, and
+    descriptions, see :ref:`pypeitpar`.
     """
-    def __init__(self, spectrograph=None, detnum=None, sortroot=None, calwin=None, scidir=None,
-                 qadir=None, redux_path=None, ignore_bad_headers=None):
+    def __init__(self, spectrograph=None, detnum=None, redux_path=None, scidir=None,
+                 qadir=None, logfile=None, ignore_bad_headers=None, reuse_masters=None,
+                 verbosity=None, overwrite=None, show=None, debug=None):
+
+        # TODO: Move caldir from CalibrationsPar to here? Could argue
+        # either way...
+
+        # TODO: These parameters are commented for now because they
+        # weren't used. Leave the comments for now in case we decide to
+        # bring any of them back.
+
+        # TODO: Allow this to apply to each calibration frame type
+#        calwin=None, 
+#        defaults['calwin'] = 0
+#        dtypes['calwin']   = [int, float]
+#        descr['calwin'] = 'The window of time in hours to search for calibration frames for a ' \
+#                          'science frame'
+#
+#        dtypes['sortroot'] = str
+#        descr['sortroot'] = 'A filename given to output the details of the sorted files.  If ' \
+#                            'None, the default is the root name of the pypeit file.  If off, ' \
+#                            'no output is produced.'
+
 
         # Grab the parameter names and values from the function
         # arguments
@@ -1532,7 +1553,7 @@ class ReduxPar(ParSet):
 
         # Fill out parameter specifications.  Only the values that are
         # *not* None (i.e., the ones that are defined) need to be set
-        options['spectrograph'] = ReduxPar.valid_spectrographs()
+        options['spectrograph'] = ExecutionPar.valid_spectrographs()
         dtypes['spectrograph'] = str
         descr['spectrograph'] = 'Spectrograph that provided the data to be reduced.  ' \
                                 'Options are: {0}'.format(', '.join(options['spectrograph']))
@@ -1540,21 +1561,10 @@ class ReduxPar(ParSet):
         dtypes['detnum'] = [int, list]
         descr['detnum'] = 'Restrict reduction to a list of detector indices'
 
-        dtypes['sortroot'] = str
-        descr['sortroot'] = 'A filename given to output the details of the sorted files.  If ' \
-                            'None, the default is the root name of the pypeit file.  If off, ' \
-                            'no output is produced.'
-
-        # TODO: Allow this to apply to each calibration frame type
-        defaults['calwin'] = 0
-        dtypes['calwin']   = [int, float]
-        descr['calwin'] = 'The window of time in hours to search for calibration frames for a ' \
-                          'science frame'
-
-        # TODO: Explain what this actually does in the description.
-        defaults['ignore_bad_headers'] = False
-        dtypes['ignore_bad_headers'] = bool
-        descr['ignore_bad_headers'] = 'Ignore bad headers (NOT recommended unless you know it is safe).'
+        defaults['redux_path'] = os.getcwd()
+        dtypes['redux_path'] = str
+        descr['redux_path'] = 'Path to folder for performing reductions.  Default is the ' \
+                              'current working directory.'
 
         defaults['scidir'] = 'Science'
         dtypes['scidir'] = str
@@ -1566,18 +1576,57 @@ class ReduxPar(ParSet):
                          'assessment files.  Set to \'none\' (the little n is important) to ' \
                          'suppress construction of QA plots.'
 
-        defaults['redux_path'] = os.getcwd()
-        dtypes['redux_path'] = str
-        descr['redux_path'] = 'Path to folder for performing reductions.  Default is the ' \
-                              'current working directory.'
+        defaults['logfile'] = 'default'
+        dtypes['logfile'] = str
+        descr['logfile'] = 'File for logging messages from the data reduction.  The file is ' \
+                           '*always* placed in the main reduction path.  Set to \'default\' to ' \
+                           'use the default naming convention.  Set to \'none\' (the little n ' \
+                           'is important) to suppress writing the log file.  WARNING: Log files ' \
+                           'are *always* ovewritten.'
+
+        # TODO: Explain what this actually does in the description.
+        defaults['ignore_bad_headers'] = False
+        dtypes['ignore_bad_headers'] = bool
+        descr['ignore_bad_headers'] = 'Ignore bad headers (NOT recommended unless you know it ' \
+                                      'is safe).'
+
+        # TODO: I think this should default to True. Maybe not now, but
+        # eventually.
+        defaults['reuse_masters'] = False
+        dtypes['reuse_masters'] = bool
+        descr['reuse_masters'] = 'Reuse any existing masters.  If False, all master files will ' \
+                                 'be recreated.  If master files exist, make sure to set ' \
+                                 'overwrite=True.'
+
+        defaults['verbosity'] = 2
+        dtypes['verbosity'] = int
+        descr['verbosity'] = 'Level of verbosity for terminal output. (IN DEVELOPMENT)'
+
+        defaults['overwrite'] = False
+        dtypes['overwrite'] = bool
+        descr['overwrite'] = 'Global overwrite flag that sets whether or not existing files ' \
+                             'should be overwritten.'
+
+        defaults['show'] = False
+        dtypes['show'] = bool
+        descr['show'] = 'Global show flag used to show plots as the code progresses.  WARNING: ' \
+                        'Code is interrupted by these plots and will stop code progression ' \
+                        'without interaction from the user.'
+
+        defaults['debug'] = False
+        dtypes['debug'] = bool
+        descr['debug'] = 'Global debug flag used to produce more plots and diagnostics of the ' \
+                         'reduction results as the code progresses.  WARNING: Code is ' \
+                         'interrupted by these plots and will stop code progression without ' \
+                         'interaction from the user.'
 
         # Instantiate the parameter set
-        super(ReduxPar, self).__init__(list(pars.keys()),
-                                        values=list(pars.values()),
-                                        defaults=list(defaults.values()),
-                                        options=list(options.values()),
-                                        dtypes=list(dtypes.values()),
-                                        descr=list(descr.values()))
+        super(ExecutionPar, self).__init__(list(pars.keys()),
+                                           values=list(pars.values()),
+                                           defaults=list(defaults.values()),
+                                           options=list(options.values()),
+                                           dtypes=list(dtypes.values()),
+                                           descr=list(descr.values()))
         self.validate()
 
     @classmethod
@@ -1585,12 +1634,13 @@ class ReduxPar(ParSet):
         k = numpy.array([*cfg.keys()])
 
         # Basic keywords
-        parkeys = [ 'spectrograph', 'detnum', 'sortroot', 'calwin', 'scidir', 'qadir',
-                    'redux_path', 'ignore_bad_headers']
+        parkeys = ['spectrograph', 'detnum', 'redux_path', 'scidir', 'qadir', 'logfile',
+                   'ignore_bad_headers', 'reuse_masters', 'verbosity', 'overwrite', 'show',
+                   'debug']
 
         badkeys = numpy.array([pk not in parkeys for pk in k])
         if numpy.any(badkeys):
-            raise ValueError('{0} not recognized key(s) for ReduxPar.'.format(k[badkeys]))
+            raise ValueError('{0} not recognized key(s) for ExecutionPar.'.format(k[badkeys]))
 
         kwargs = {}
         for pk in parkeys:
@@ -1608,11 +1658,12 @@ class ReduxPar(ParSet):
         return ['keck_deimos', 'keck_lris_blue', 'keck_lris_red', 'keck_lris_red_longonly',
                 'keck_nires', 'keck_nirspec_low', 'keck_mosfire', 'keck_hires_red',
                 'shane_kast_blue', 'shane_kast_red', 'shane_kast_red_ret', 'tng_dolores',
-                'wht_isis_blue', 'wht_isis_red', 'vlt_xshooter_uvb', 'vlt_xshooter_vis', 'vlt_xshooter_nir',
-                'vlt_fors2', 'gemini_gnirs', 'gemini_flamingos1', 'gemini_flamingos2',
-                'gemini_gmos_south_ham', 'gemini_gmos_north_e2v', 'gemini_gmos_north_ham',
-                'magellan_fire', 'magellan_fire_long', 'magellan_mage', 'lbt_mods1r', 'lbt_mods1b',
-                'lbt_mods2r', 'lbt_mods2b', 'lbt_luci1', 'lbt_luci2', 'mmt_binospec']
+                'wht_isis_blue', 'wht_isis_red', 'vlt_xshooter_uvb', 'vlt_xshooter_vis',
+                'vlt_xshooter_nir', 'vlt_fors2', 'gemini_gnirs', 'gemini_flamingos1',
+                'gemini_flamingos2', 'gemini_gmos_south_ham', 'gemini_gmos_north_e2v',
+                'gemini_gmos_north_ham', 'magellan_fire', 'magellan_fire_long', 'magellan_mage',
+                'lbt_mods1r', 'lbt_mods1b', 'lbt_mods2r', 'lbt_mods2b', 'lbt_luci1', 'lbt_luci2',
+                'mmt_binospec']
 
     def validate(self):
         if self['qadir'] == 'none':
@@ -3126,9 +3177,11 @@ class PypeItPar(ParSet):
 
         # Fill out parameter specifications.  Only the values that are
         # *not* None (i.e., the ones that are defined) need to be set
-        defaults['rdx'] = ReduxPar()
+        # TODO: Change keyword? Annoying because this propagates to all
+        # existing pypeit files...
+        defaults['rdx'] = ExecutionPar()
         dtypes['rdx'] = [ ParSet, dict ]
-        descr['rdx'] = 'PypIt reduction rules.'
+        descr['rdx'] = 'PypeIt execution setup.'
 
 #        defaults['baseprocess'] = ProcessImagesPar()
 #        dtypes['baseprocess'] = [ ParSet, dict ]
@@ -3391,7 +3444,7 @@ class PypeItPar(ParSet):
         kwargs = {}
 
         pk = 'rdx'
-        kwargs[pk] = ReduxPar.from_dict(cfg[pk]) if pk in k else None
+        kwargs[pk] = ExecutionPar.from_dict(cfg[pk]) if pk in k else None
 
         pk = 'calibrations'
         kwargs[pk] = CalibrationsPar.from_dict(cfg[pk]) if pk in k else None

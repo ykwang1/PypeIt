@@ -108,13 +108,15 @@ class Messages:
             devmsg = ''
         return devmsg
 
-    def _print(self, premsg, msg, last=True):
+    # TODO: Add verbosity level so that only messages <= self._verosity
+    # are logged.
+    def _print(self, premsg, msg, last=True, log_only=False):
         """
         Print to standard error and the log file
         """
         devmsg = self._devmsg()
         _msg = premsg+devmsg+msg
-        if self._verbosity != 0:
+        if self._verbosity != 0 and not log_only:
             print(_msg, file=sys.stderr)
         if self._log:
             clean_msg = self._cleancolors(_msg)
@@ -160,21 +162,21 @@ class Messages:
         self._initialize_log_file(log=log)
 
     # Headers and usage
-    # TODO: Move this to the ARMED class...
-    def armedheader(self, prognm):
-        """
-        Get the info header for ARMED
-        """
-        header = '##  '
-        header += self._start + self._white_GR + 'ARMED : '
-        header += 'Automated Reduction and Modelling of Echelle Data v{0:s}'.format(
-                        self._version) + self._end + '\n'
-        header += '##  '
-        header += 'Usage : '
-        header += 'python %s [options] filelist'.format(prognm)
-        return header
+#    # TODO: Move this to the ARMED class...
+#    def armedheader(self, prognm):
+#        """
+#        Get the info header for ARMED
+#        """
+#        header = '##  '
+#        header += self._start + self._white_GR + 'ARMED : '
+#        header += 'Automated Reduction and Modelling of Echelle Data v{0:s}'.format(
+#                        self._version) + self._end + '\n'
+#        header += '##  '
+#        header += 'Usage : '
+#        header += 'python %s [options] filelist'.format(prognm)
+#        return header
 
-    def pypeitheader(self, prognm):
+    def pypeitheader(self):
         """
         Get the info header for PypeIt
         """
@@ -185,7 +187,7 @@ class Messages:
         header += '##  '
         return header
 
-    def usage(self, prognm):
+    def usage(self):
         """
         Print pypeit usage data.
         """
@@ -204,7 +206,7 @@ class Messages:
             spclist += ', ' + istsp.split('.')[-1]
 
         spcl = textwrap.wrap(spclist, width=60)
-        descs = self.pypeitheader(prognm)
+        descs = self.pypeitheader()
 
         descs += '\n##  Available pipelines include (OUTDATED):'
         descs += '\n##   ' + armlist
@@ -246,12 +248,12 @@ class Messages:
 #            self.close()
 #            sys.exit()
 
-    def error(self, msg, usage=False):
+    def error(self, msg, usage=False, log_only=False):
         """
         Print an error message
         """
         premsg = '\n'+self._start + self._white_RD + '[ERROR]   ::' + self._end + ' '
-        self._print(premsg, msg)
+        self._print(premsg, msg, log_only=log_only)
 
         # Close log file
         # TODO: This no longer "closes" the QA plots
@@ -259,62 +261,61 @@ class Messages:
 
         # Print command line usage
         if usage:
-            self.usage(None)
+            self.usage()
         #
         raise PypeItError(msg)
-        sys.exit(1)
 
-    def info(self, msg):
+    def info(self, msg, log_only=False):
         """
         Print an information message
         """
         premsg = self._start + self._green_CL + '[INFO]    ::' + self._end + ' '
-        self._print(premsg, msg)
+        self._print(premsg, msg, log_only=log_only)
 
-    def info_update(self, msg, last=False):
+    def info_update(self, msg, last=False, log_only=False):
         """
         Print an information message that needs to be updated
         """
         premsg = '\r' + self._start + self._green_CL + '[INFO]    ::' + self._end + ' '
-        self._print(premsg, msg, last=last)
+        self._print(premsg, msg, last=last, log_only=log_only)
 
-    def test(self, msg):
+    def test(self, msg, log_only=False):
         """
         Print a test message
         """
         if self._verbosity == 2:
             premsg = self._start + self._white_BL + '[TEST]    ::' + self._end + ' '
-            self._print(premsg, msg)
+            self._print(premsg, msg, log_only=log_only)
 
-    def warn(self, msg):
+    def warn(self, msg, log_only=False):
         """
         Print a warning message
         """
         premsg = self._start + self._red_CL + '[WARNING] ::' + self._end + ' '
-        self._print(premsg, msg)
+        self._print(premsg, msg, log_only=log_only)
 
-    def bug(self, msg):
+    def bug(self, msg, log_only=False):
         """
         Print a bug message
         """
         premsg = self._start + self._white_BK + '[BUG]     ::' + self._end + ' '
-        self._print(premsg, msg)
+        self._print(premsg, msg, log_only=log_only)
 
-    def work(self, msg):
+    def work(self, msg, log_only=False):
         """
         Print a work in progress message
         """
         if self._verbosity == 2:
             premsgp = self._start + self._black_CL + '[WORK IN ]::' + self._end + '\n'
             premsgs = self._start + self._yellow_CL + '[PROGRESS]::' + self._end + ' '
-            self._print(premsgp+premsgs, msg)
+            self._print(premsgp+premsgs, msg, log_only=log_only)
 
-    def prindent(self, msg):
+    def prindent(self, msg, log_only=False):
         """
         Print an indent
         """
         premsg = '             '
-        self._print(premsg, msg)
+        self._print(premsg, msg, log_only=log_only)
 
     def input(self):
         """
