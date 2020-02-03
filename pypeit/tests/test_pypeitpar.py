@@ -57,6 +57,12 @@ def test_spectrographs():
 def test_redux():
     pypeitpar.ExecutionPar()
 
+def test_redux_specified():
+    p = pypeitpar.ExecutionPar(spectrograph='shane_kast_blue', logfile='default')
+    assert p.specified['spectrograph'], 'Should have set spectrograph as being specified.'
+    assert p.specified['logfile'], 'Should have set logfile as being specified.'
+    assert not p.specified['overwrite'], 'Should not have set overwrite as being specified.'
+
 def test_wavelengthsolution():
     pypeitpar.WavelengthSolutionPar()
 

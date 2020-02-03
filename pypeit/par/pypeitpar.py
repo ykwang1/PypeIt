@@ -1598,7 +1598,7 @@ class ExecutionPar(ParSet):
                                  'be recreated.  If master files exist, make sure to set ' \
                                  'overwrite=True.'
 
-        defaults['verbosity'] = 2
+        defaults['verbosity'] = 1
         dtypes['verbosity'] = int
         descr['verbosity'] = 'Level of verbosity for terminal output. (IN DEVELOPMENT)'
 
@@ -1628,6 +1628,15 @@ class ExecutionPar(ParSet):
                                            dtypes=list(dtypes.values()),
                                            descr=list(descr.values()))
         self.validate()
+
+        # ExecutionPar is special because its elements can be specified
+        # on the command line when callling run_pypeit. We need to keep
+        # track of which parameters were specified on input. The
+        # command-line arguments always take precidence over the pypeit
+        # file, meaning that we specifically need to know if the
+        # command-line argument selects the default behavior when the
+        # pypeit_file does not.
+        self.specified = {key: pars[key] is not None for key in self.keys()}
 
     @classmethod
     def from_dict(cls, cfg):
@@ -1666,8 +1675,14 @@ class ExecutionPar(ParSet):
                 'mmt_binospec']
 
     def validate(self):
+        # Resolve QA directory
         if self['qadir'] == 'none':
             self['qadir'] = None
+        # Resolve log file
+        if self['logfile'] == 'none':
+            self['logfile'] = None
+        # Make sure reduction path is absolute
+        self['redux_path'] = os.path.abspath(self['redux_path'])
 
     
 class WavelengthSolutionPar(ParSet):

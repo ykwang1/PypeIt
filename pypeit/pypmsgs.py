@@ -52,12 +52,8 @@ class Messages:
     """
     def __init__(self, log=None, verbosity=None, colors=True):
 
-        # Initialize other variables
-        self._defverb = 1
-        if getpass.getuser() in developers:
-            self._defverb = 2
-        self._verbosity = self._defverb if verbosity is None else verbosity
-#        self._last_updated = __last_updated__
+        self.run_by_developer = getpass.getuser() in developers
+        self._defverb = 2 if self.run_by_developer else 1
         self._version = __version__
 
         # TODO: Why are these two necessary?  It would seem better to
@@ -69,7 +65,6 @@ class Messages:
 
         # Initialize the log
         self._log = None
-        self._initialize_log_file(log=log)
 
         # Use colors?
         self._start = None
@@ -86,9 +81,7 @@ class Messages:
         self._black_YL = None
         self._yellow_BK = None
 
-        self.disablecolors()
-        if colors:
-            self.enablecolors()
+        self.reset(log=log, verbosity=verbosity, colors=colors)
 
     def _cleancolors(self, msg):
         cols = [self._end, self._start,
@@ -149,7 +142,8 @@ class Messages:
         but also a dynamically defined log file.
         """
         # Initialize other variables
-        self._verbosity = self._defverb if verbosity is None else verbosity
+        self._verbosity = self._defverb if self.run_by_developer or verbosity is None \
+                                        else verbosity
         self.reset_log_file(log)
         self.disablecolors()
         if colors:

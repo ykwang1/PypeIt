@@ -219,14 +219,13 @@ class PypeIt:
         parameters in the provided set that are *not* the same as the
         default will overwrite the current :attr:`par` constructed
         from the pypeit file.
-        
+
         Args:
             par (:class:`pypeit.par.pypeitpar.ExecutionPar`):
                 The parameters used to overwrite :attr:`par`.
         """
-        default_par = ExecutionPar()
         for key in par.keys():
-            if par[key] != default_par[key]:
+            if par.specified[key]:
                 self.par['rdx'][key] = par[key]
 
     def build_qa(self):

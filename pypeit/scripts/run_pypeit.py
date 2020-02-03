@@ -8,7 +8,11 @@ This script runs PypeIt
 """
 import argparse
 
+import numpy as np
+
 from pypeit import msgs
+from pypeit.scripts.util import specified_args
+from IPython import embed
 
 def parser(options=None):
     """
@@ -18,7 +22,7 @@ def parser(options=None):
                                    formatter_class=argparse.RawDescriptionHelpFormatter)
     args.add_argument('pypeit_file', type=str,
                       help='PypeIt reduction file (must have .pypeit extension)')
-    args.add_argument('-d', '--detector', metavar='D', type=int, nargs='+', default=None,
+    args.add_argument('-d', '--detnum', metavar='D', type=int, nargs='+', default=None,
                       help='One or more detectors to reduce (1-indexed).  If not provided, all '
                            'detectors are reduced.  If the output files exist and -o is used, '
                            'the outputs for the input detector will be replaced.')
@@ -34,10 +38,10 @@ def parser(options=None):
                            'extension.  This suppresses output to the log file.  You can also '
                            'change the name of the log file using the \'logfile\' keyword in '
                            'the pypeit file.')
-    args.add_argument('-i', '--bad_headers', default=False, action='store_true',
+    args.add_argument('-i', '--ignore_bad_headers', default=False, action='store_true',
                       help='Ignore headers that do not have the required metadata.  WARNING: '
                            'Use at your own risk.')
-    args.add_argument('-m', '--use_masters', default=False, action='store_true',
+    args.add_argument('-m', '--reuse_masters', default=False, action='store_true',
                       help='Load previously generated MasterFrames')
     args.add_argument('-v', '--verbosity', type=int, default=1,
                       help='Verbosity level between 0 [none] and 2 [all]')
@@ -50,13 +54,34 @@ def parser(options=None):
     args.add_argument('-b', '--debug', default=False, action='store_true',
                       help='Show many more reduction steps via matplotlib plots (which will '
                            'block further execution until clicked on).')
-    return args.parse_args() if options is None else args.parse_args(options)
 
+    return args.parse_args() if options is None else args.parse_args(options), \
+                specified_args(args, options=options)
 
-def main(args):
+def exec_kwargs(args, specified):
+    """
+    Find the arguments that were specified by the command-line before
+    instantiating the :class:`pypeit.par.pypeitpar.ExecutionPar`.
+
+    Args:
+        args (`argparse.Namespace`_):
+            Object with the arguments parsed from the command line.
+        specified (array-like):
+            List of strings with the argument destination names that
+            were specified by the command line.
+
+    Returns:
+        :obj:`dict`: Dictionary with the arguments and values used
+        when instantiating
+        :class:`pypeit.par.pypeitpar.ExecutionPar`.
+    """
+    direct_keys = ['detnum', 'redux_path', 'ignore_bad_headers', 'reuse_masters', 'verbosity',
+                   'overwrite', 'show', 'debug']
+    return {key: getattr(args, key) for key in np.atleast_1d(specified) if key in direct_keys} 
+
+def main(args, specified):
 
     import os
-    from IPython import embed
 
     from pypeit import pypeit
     from pypeit.par.pypeitpar import ExecutionPar
@@ -83,25 +108,23 @@ def main(args):
     # changed on the command-line instead of having to edit the pypeit
     # file.
 
-    # TODO: Allow spectrograph to be provided as a command-line argument?
-    execpar = ExecutionPar(detnum=args.detector, redux_path=args.redux_path,
-                           ignore_bad_headers=args.bad_headers, reuse_masters=args.use_masters,
-                           verbosity=args.verbosity, overwrite=args.overwrite, show=args.show,
-                           debug=args.debug)
-
-    # Report and finalize some parameters
-    if args.detector is not None:
-        msgs.info("Restricting reductions to detector(s)={}".format(args.detector))
-
+    # This is a bit onerous, but the purpose is to keep track of which
+    # arguments are actually specified on the command line. Items
+    # specified on the command-line take precedence over items in the
+    # log file.
+    execpar = ExecutionPar(**exec_kwargs(args, specified))
+    if args.detnum is not None:
+        msgs.info("Restricting reductions to detector(s)={}".format(args.detnum))
     if not args.qa:
         msgs.info('No QA plots will be produced.')
         execpar['qadir'] = None
-
+        execpar.specified['qadir'] = True
     if args.log:
         execpar['logfile'] = pypeit.PypeIt.default_log_file(args.pypeit_file)
     else:
         msgs.info('No logfile will be written.')
         execpar['logfile'] = None
+        execpar.specified['logfile'] = True
 
     # Instantiate the main pipeline reduction object
     pypeIt = pypeit.PypeIt(args.pypeit_file, par=execpar)

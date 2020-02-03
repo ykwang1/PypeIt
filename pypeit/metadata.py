@@ -1534,11 +1534,12 @@ class PypeItMetaData:
                 configurations matched to this provided list (e.g.,
                 ['A','C']).  See :func:`get_configuration_names`.
 
+        Returns:
+            list:  List of PypeIt files generated
+
         Raises:
             PypeItError:
                 Raised if the 'setup' isn't defined and split is True.
-        Returns:
-            list:  List of PypeIt files generated
         """
         # Grab output columns
         output_cols = self.set_pypeit_cols(write_bkg_pairs=write_bkg_pairs)
@@ -1554,7 +1555,7 @@ class PypeItMetaData:
         for setup,i in zip(setups, indx):
             # Create the output directory
             root = '{0}_{1}'.format(self.spectrograph.spectrograph, setup)
-            odir = os.path.join(os.path.split(ofile)[0], root)
+            odir = os.path.join(os.path.split(os.path.abspath(ofile))[0], root)
             if not os.path.isdir(odir):
                 os.makedirs(odir)
             # Create the output file name
