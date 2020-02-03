@@ -3,22 +3,24 @@ Main driver class for PypeIt run
 """
 import time
 import os
-import numpy as np
 from collections import OrderedDict
+
+from configobj import ConfigObj
+
+import numpy as np
+
 from astropy.io import fits
+
 from pypeit import msgs
 from pypeit import calibrations
 from pypeit.images import scienceimage
 from pypeit import ginga
 from pypeit import reduce
 from pypeit.core import qa
-from pypeit.core import wave
 from pypeit.core import save
 from pypeit import specobjs
-from pypeit.core import pixels
 from pypeit.spectrographs.util import load_spectrograph
 
-from configobj import ConfigObj
 from pypeit.par.util import parse_pypeit_file
 from pypeit.par import PypeItPar
 from pypeit.metadata import PypeItMetaData
@@ -87,8 +89,8 @@ class PypeIt:
         #     ``config_par_frametype`` method. The order of the frame
         #     types in that list are treated as a prioritization.
         config_ex_file = None
-        for f in self.spectrograph.config_par_frametype():
-            indx = np.isin([f], row['frametype'])
+        for f in self.spectrograph.config_par_frametypes():
+            indx = [np.any(np.isin(d.split(','),[f])) for d in usrdata['frametype']]
             if not np.any(indx):
                 continue
             config_ex_file = data_files[np.where(indx)[0][0]]
@@ -172,6 +174,7 @@ class PypeIt:
         self.basename = None
         self.sciI = None
         self.obstime = None
+        self.ir_redux = False
 
     @property
     def science_path(self):
@@ -286,6 +289,9 @@ class PypeIt:
         is_standard = self.fitstbl.find_frames('standard')
         is_science = self.fitstbl.find_frames('science')
 
+        # Frame indices
+        frame_indx = np.arange(len(self.fitstbl))
+
         # Allow the code to proceed by only reducing the calibrations
         if np.sum(is_standard | is_science) == 0:
             msgs.warn('No science or standard-star frames found.  Only calibration frames will '
@@ -307,7 +313,7 @@ class PypeIt:
         stdfile = self.get_std_outfile(np.where(is_standard)[0]) if np.any(is_standard) else None
 
         # Reduce any science frames
-        for i in range(self.fitstbl.n_calib_groups * int(np.sum(is_standard) > 0)):
+        for i in range(self.fitstbl.n_calib_groups * int(np.sum(is_science) > 0)):
             # Reduce all the standard frames, loop on unique comb_id
             grp_science = frame_indx[is_science & self.fitstbl.find_calib_group(i)]
             for comb_id in enumerate(np.unique(self.fitstbl['comb_id'][grp_science])):
@@ -346,7 +352,7 @@ class PypeIt:
             ginga.clear_all()
 
         # Print status message
-        msgs.info('Reducing calibration group {0}'.format(i))
+        msgs.info('Reducing calibration group {0}'.format(grp))
 
         # Find the detectors to reduce
         detectors = PypeIt.select_detectors(detnum=self.par['rdx']['detnum'],
@@ -678,7 +684,7 @@ class PypeIt:
             self.caliBrate.mspixelflat, illum_flat=illum_flat)
 
         # Background Image?
-        if bg_frames is not None and len(bg_frames) > 0
+        if bg_frames is not None and len(bg_frames) > 0:
             bg_file_list = self.fitstbl.frame_paths(bg_frames)
             self.sciImg = self.sciImg - scienceimage.build_from_file_list(
                 self.spectrograph, det, self.par['scienceframe']['process'],

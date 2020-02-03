@@ -283,7 +283,7 @@ class Calibrations(object):
                 Erase any previously cached calibrations.
         """
         # Check the input
-        if not isinstance(frame, int):
+        if hasattr(frame, '__len__'):
             msgs.error('Must provide a single integer for frame.')
 
         # Reset internals to None

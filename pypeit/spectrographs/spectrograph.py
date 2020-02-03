@@ -584,7 +584,7 @@ class Spectrograph(object):
 
         # If provided a list of keys, recursively call get_meta_value
         if isinstance(meta_key, list):
-            return [self.get_meta_value(headarr, key, required=required)) for key in meta_key]
+            return [self.get_meta_value(headarr, key, required=required) for key in meta_key]
 
         # Are we prepared to provide this meta data?
         if meta_key not in self.meta.keys():

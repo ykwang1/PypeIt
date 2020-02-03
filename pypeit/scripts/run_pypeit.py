@@ -77,7 +77,8 @@ def main(args):
 
     from pypeit import pypeit
     from pypeit import pypeitsetup
-    from pypeit import debugger
+
+    from IPython import embed
 
     # Initiate logging for bugs and command line help
     # These messages will not be saved to a log file
@@ -107,6 +108,7 @@ def main(args):
     # pypeit file. You're right that this could get unwieldy, but a
     # small subset of parameters make sense to me. Detector is one, QA
     # is another.
+
     if args.detector is not None:
         msgs.info("Restricting reductions to detector={}".format(args.detector))
         pypeIt.par['rdx']['detnum'] = int(args.detector)

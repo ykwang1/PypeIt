@@ -8,7 +8,7 @@ import os
 import inspect
 import numpy as np
 
-from scipy import interpolate, ndimage
+from scipy import interpolate
 
 from matplotlib import pyplot as plt
 
@@ -26,7 +26,6 @@ from pypeit.images import pypeitimage
 from pypeit.core import flat
 from pypeit.core import save
 from pypeit.core import load
-from pypeit.core import pixels
 from pypeit.core import procimg
 from pypeit.core import tracewave
 from pypeit.core import basis
