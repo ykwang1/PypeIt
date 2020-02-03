@@ -180,6 +180,10 @@ class VLTFORS2Spectrograph(VLTFORSSpectrograph):
         self.camera = 'FORS2'
         self.numhead = 1
 
+    # TODO: Not sure about this. Is it better to have two separate
+    # spectrograph instances? Maybe not because most of the detector
+    # properties are the same.
+
     def set_detector(self, chip):
         detectors = [
             # Detector 1 (Thor)  -- http://www.eso.org/sci/php/optdet/instruments/fors2/index.html
@@ -246,7 +250,7 @@ class VLTFORS2Spectrograph(VLTFORSSpectrograph):
         Args:
             scifile (str):
                 File to use when determining the configuration and how
-                to adjust the input parameters.
+                to adjust the input parameters.  Cannot be None.
             inp_par (:class:`pypeit.par.parset.ParSet`, optional):
                 Parameter set used for the full run of PypeIt.  If None,
                 use :func:`default_pypeit_par`.
@@ -255,15 +259,23 @@ class VLTFORS2Spectrograph(VLTFORSSpectrograph):
             :class:`pypeit.par.parset.ParSet`: The PypeIt paramter set
             adjusted for configuration specific parameter values.
         """
+        if scifile is None:
+            msgs.error('File required to set {0} configuration specific parameters.'.format(
+                       self.spectrograph))
+
         par = self.default_pypeit_par() if inp_par is None else inp_par
         # TODO: Should we allow the user to override these?
 
-        detector = self.get_meta_value(scifile, 'detector')
+        # Only open the file once
+        headarr = self.get_headarr(scifile)
+
+        # TODO: Is this required?
+        detector = self.get_meta_value(headarr, 'detector') #, required=True)
         self.set_detector(detector)
         # Wavelengths
         par['calibrations']['wavelengths']['nonlinear_counts'] = self.detector[0]['nonlinear'] * self.detector[0]['saturation']
 
-        if self.get_meta_value(scifile, 'dispname') == 'GRIS_300I':
+        if self.get_meta_value(headarr, 'dispname') == 'GRIS_300I':
             par['calibrations']['wavelengths']['reid_arxiv'] = 'vlt_fors2_300I.fits'
             par['calibrations']['wavelengths']['method'] = 'full_template'
 

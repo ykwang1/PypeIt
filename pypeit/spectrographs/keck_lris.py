@@ -59,7 +59,6 @@ class KeckLRISSpectrograph(spectrograph.Spectrograph):
         par['scienceframe']['exprng'] = [29, None]
         return par
 
-
     def config_specific_par(self, scifile, inp_par=None):
         """
         Modify the PypeIt parameters to hard-wired values used for
@@ -71,7 +70,7 @@ class KeckLRISSpectrograph(spectrograph.Spectrograph):
         Args:
             scifile (str):
                 File to use when determining the configuration and how
-                to adjust the input parameters.
+                to adjust the input parameters.  Cannot be None.
             inp_par (:class:`pypeit.par.parset.ParSet`, optional):
                 Parameter set used for the full run of PypeIt.  If None,
                 use :func:`default_pypeit_par`.
@@ -80,19 +79,23 @@ class KeckLRISSpectrograph(spectrograph.Spectrograph):
             :class:`pypeit.par.parset.ParSet`: The PypeIt paramter set
             adjusted for configuration specific parameter values.
         """
+        if scifile is None:
+            msgs.error('File required to set {0} configuration specific parameters.'.format(
+                       self.spectrograph))
+
         par = self.default_pypeit_par() if inp_par is None else inp_par
 
-        # Ignore PCA if longslit
-        #  This is a little risky as a user could put long into their maskname
-        #  But they would then need to over-ride in their PypeIt file
+        # TODO: This behavior needs to be documented on readthedocs
+        # Ignore PCA if longslit. This is a little risky as a user
+        # could put long into their maskname. But they would then need
+        # to over-ride in their PypeIt file
         if 'long' in self.get_meta_value(scifile, 'decker'):
+            msgs.warn('Assuming you are reducing long-slit data.')
             par['calibrations']['slitedges']['sync_predict'] = 'nearest'
             # This might only be required for det=2, but we'll see..
             if self.spectrograph == 'keck_lris_red':
                 par['calibrations']['slitedges']['edge_thresh'] = 1000.
-
         return par
-
 
     def init_meta(self):
         """
@@ -418,8 +421,6 @@ class KeckLRISBSpectrograph(KeckLRISSpectrograph):
         par['calibrations']['wavelengths']['n_first'] = 3
         par['calibrations']['wavelengths']['match_toler'] = 2.5
         par['calibrations']['wavelengths']['method'] = 'full_template'
-
-
         return par
 
     def config_specific_par(self, scifile, inp_par=None):
@@ -433,7 +434,7 @@ class KeckLRISBSpectrograph(KeckLRISSpectrograph):
         Args:
             scifile (str):
                 File to use when determining the configuration and how
-                to adjust the input parameters.
+                to adjust the input parameters.  Cannot be None.
             inp_par (:class:`pypeit.par.parset.ParSet`, optional):
                 Parameter set used for the full run of PypeIt.  If None,
                 use :func:`default_pypeit_par`.
@@ -442,35 +443,50 @@ class KeckLRISBSpectrograph(KeckLRISSpectrograph):
             :class:`pypeit.par.parset.ParSet`: The PypeIt paramter set
             adjusted for configuration specific parameter values.
         """
+        if scifile is None:
+            msgs.error('File required to set {0} configuration specific parameters.'.format(
+                       self.spectrograph))
+
         # Start with instrument wide
         par = super(KeckLRISBSpectrograph, self).config_specific_par(scifile, inp_par=inp_par)
 
+        # Only open the file once
+        headarr = self.get_headarr(scifile)
+
         # Wavelength calibrations
-        if self.get_meta_value(scifile, 'dispname') == '300/5000':
+        # TODO: Should this be required?
+        dispname = self.get_meta_value(headarr, 'dispname') #, required=True)
+        if dispname == '300/5000':
             par['calibrations']['wavelengths']['reid_arxiv'] = 'keck_lris_blue_300_d680.fits'
             par['flexure']['spectrum'] = os.path.join(resource_filename('pypeit', 'data/sky_spec/'),
                                                       'sky_LRISb_400.fits')
-        elif self.get_meta_value(scifile, 'dispname') == '400/3400':
+        elif dispname == '400/3400':
             par['calibrations']['wavelengths']['reid_arxiv'] = 'keck_lris_blue_400_d560.fits'
             par['flexure']['spectrum'] = os.path.join(resource_filename('pypeit', 'data/sky_spec/'),
                                                   'sky_LRISb_400.fits')
-        elif self.get_meta_value(scifile, 'dispname') == '600/4000':
+        elif dispname == '600/4000':
             par['calibrations']['wavelengths']['reid_arxiv'] = 'keck_lris_blue_600_d560.fits'
             par['flexure']['spectrum'] = os.path.join(resource_filename('pypeit', 'data/sky_spec/'),
                                                       'sky_LRISb_600.fits')
-        elif self.get_meta_value(scifile, 'dispname') == '1200/3400':
+        elif dispname == '1200/3400':
             par['calibrations']['wavelengths']['reid_arxiv'] = 'keck_lris_blue_1200_d460.fits'
             par['flexure']['spectrum'] = os.path.join(resource_filename('pypeit', 'data/sky_spec/'),
                                                       'sky_LRISb_600.fits')
+        else:
+            # TODO: Should this fault?
+            msgs.warn('Disperser {0} not recognized for {1}.'.format(dispname, self.spectrograph))
 
         # FWHM
-        binning = parse.parse_binning(self.get_meta_value(scifile, 'binning'))
+        # TODO: Should this be required?
+        binning = parse.parse_binning(self.get_meta_value(headarr, 'binning'))
         par['calibrations']['wavelengths']['fwhm'] = 8.0 / binning[0]
 
         # Slit tracing
-        # Reduce the slit parameters because the flux does not span the full detector
-        #   It is primarily on the upper half of the detector (usually)
-        if self.get_meta_value(scifile, 'dispname') == '300/5000':
+        # Reduce the slit parameters because the flux does not span the
+        # full detector; it is primarily on the upper half of the
+        # detector (usually)
+        # TODO: Put this in the previous check for this disperser?
+        if dispname == '300/5000':
             par['calibrations']['slitedges']['smash_range'] = [0.5, 1.]
 
         # Return
@@ -633,7 +649,7 @@ class KeckLRISRSpectrograph(KeckLRISSpectrograph):
         Args:
             scifile (str):
                 File to use when determining the configuration and how
-                to adjust the input parameters.
+                to adjust the input parameters.  Cannot be None.
             inp_par (:class:`pypeit.par.parset.ParSet`, optional):
                 Parameter set used for the full run of PypeIt.  If None,
                 use :func:`default_pypeit_par`.
@@ -642,36 +658,47 @@ class KeckLRISRSpectrograph(KeckLRISSpectrograph):
             :class:`pypeit.par.parset.ParSet`: The PypeIt paramter set
             adjusted for configuration specific parameter values.
         """
+        if scifile is None:
+            msgs.error('File required to set {0} configuration specific parameters.'.format(
+                       self.spectrograph))
+
         # Start with instrument wide
         par = super(KeckLRISRSpectrograph, self).config_specific_par(scifile, inp_par=inp_par)
 
+        # Only open the file once
+        headarr = self.get_headarr(scifile)
+
         # Lacosmic CR settings
         #   Grab the defaults for LRISr
-        binning = self.get_meta_value(scifile, 'binning')
-        # Unbinned LRISr needs very aggressive LACosmics parameters for 1x1 binning
+        binning = self.get_meta_value(headarr, 'binning')
         if binning == '1,1':
+            # Unbinned LRISr needs very aggressive LACosmics parameters
             sigclip = 3.0
             objlim = 0.5
             par['scienceframe']['process']['sigclip'] = sigclip
             par['scienceframe']['process']['objlim'] = objlim
 
+        # FWHM
+        binning = parse.parse_binning(binning)
+        par['calibrations']['wavelengths']['fwhm'] = 8.0 / binning[0]
+
+        # TODO: Should this be this required?
+        dispname = self.get_meta_value(headarr, 'dispname') #, required=True)
         # Wavelength calibrations
-        if self.get_meta_value(scifile, 'dispname') == '400/8500':  # This is basically a reidentify
+        if dispname == '400/8500':  # This is basically a reidentify
             par['calibrations']['wavelengths']['reid_arxiv'] = 'keck_lris_red_400.fits'
             par['calibrations']['wavelengths']['method'] = 'full_template'
             par['calibrations']['wavelengths']['sigdetect'] = 20.0
             par['calibrations']['wavelengths']['nsnippet'] = 1
-        elif self.get_meta_value(scifile, 'dispname') == '600/5000':
+        elif dispname == '600/5000':
             par['calibrations']['wavelengths']['reid_arxiv'] = 'keck_lris_red_600_5000.fits'
             par['calibrations']['wavelengths']['method'] = 'full_template'
-        elif self.get_meta_value(scifile, 'dispname') == '1200/9000':
+        elif dispname == '1200/9000':
             par['calibrations']['wavelengths']['reid_arxiv'] = 'keck_lris_red_1200_9000.fits'
             par['calibrations']['wavelengths']['method'] = 'full_template'
-
-        # FWHM
-        binning = parse.parse_binning(self.get_meta_value(scifile, 'binning'))
-        par['calibrations']['wavelengths']['fwhm'] = 8.0 / binning[0]
-
+        else:
+            # TODO: Should this fault?
+            msgs.warn('Disperser {0} not recognized for {1}.'.format(dispname, self.spectrograph))
 
         # Return
         return par

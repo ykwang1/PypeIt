@@ -153,7 +153,7 @@ class GeminiGMOSSpectrograph(spectrograph.Spectrograph):
         Args:
             scifile (str):
                 File to use when determining the configuration and how
-                to adjust the input parameters.
+                to adjust the input parameters. Cannot be None.
             inp_par (:class:`pypeit.par.parset.ParSet`, optional):
                 Parameter set used for the full run of PypeIt.  If None,
                 use :func:`default_pypeit_par`.
@@ -162,6 +162,9 @@ class GeminiGMOSSpectrograph(spectrograph.Spectrograph):
             :class:`pypeit.par.parset.ParSet`: The PypeIt paramter set
             adjusted for configuration specific parameter values.
         """
+        if scifile is None:
+            msgs.error('File required to set {0} configuration specific parameters.'.format(
+                       self.spectrograph))
         par = self.__class__.default_pypeit_par() if inp_par is None else inp_par
 
         headarr = self.get_headarr(scifile)
@@ -439,7 +442,7 @@ class GeminiGMOSSHamSpectrograph(GeminiGMOSSpectrograph):
         Args:
             scifile (str):
                 File to use when determining the configuration and how
-                to adjust the input parameters.
+                to adjust the input parameters.  Cannot be None.
             inp_par (:class:`pypeit.par.parset.ParSet`, optional):
                 Parameter set used for the full run of PypeIt.  If None,
                 use :func:`default_pypeit_par`.
@@ -449,15 +452,25 @@ class GeminiGMOSSHamSpectrograph(GeminiGMOSSpectrograph):
             adjusted for configuration specific parameter values.
         """
         # Start with instrument wide
+        # TODO: Only read the file once
         par = super(GeminiGMOSSHamSpectrograph, self).config_specific_par(scifile, inp_par=inp_par)
 
-        if self.get_meta_value(scifile, 'dispname')[0:4] == 'R400':
-            par['calibrations']['wavelengths']['reid_arxiv'] = 'gemini_gmos_r400_ham.fits'
-        elif self.get_meta_value(scifile, 'dispname')[0:4] == 'B600':
-            par['calibrations']['wavelengths']['reid_arxiv'] = 'gemini_gmos_b600_ham.fits'
-        #
-        return par
+        if scifile is None:
+            msgs.error('File required to set {0} configuration specific parameters.'.format(
+                       self.spectrograph))
 
+        # TODO: Is this required?
+        dispname = self.get_meta_value(scifile, 'dispname') #, required=True)
+        if dispname is None:
+            # NOTE: get_meta_value should issue a warning
+            return par
+        if dispname[:4] == 'R400':
+            par['calibrations']['wavelengths']['reid_arxiv'] = 'gemini_gmos_r400_ham.fits'
+        elif dispname[:4] == 'B600':
+            par['calibrations']['wavelengths']['reid_arxiv'] = 'gemini_gmos_b600_ham.fits'
+        else:
+            # TODO: Should this fault?
+            msgs.warn('Disperser {0} not recognized for {1}.'.format(dispname, self.spectrograph))
 
 
 class GeminiGMOSNSpectrograph(GeminiGMOSSpectrograph):
@@ -543,7 +556,7 @@ class GeminiGMOSNHamSpectrograph(GeminiGMOSNSpectrograph):
         Args:
             scifile (str):
                 File to use when determining the configuration and how
-                to adjust the input parameters.
+                to adjust the input parameters.  Cannot be None.
             inp_par (:class:`pypeit.par.parset.ParSet`, optional):
                 Parameter set used for the full run of PypeIt.  If None,
                 use :func:`default_pypeit_par`.
@@ -555,12 +568,24 @@ class GeminiGMOSNHamSpectrograph(GeminiGMOSNSpectrograph):
         # Start with instrument wide
         par = super(GeminiGMOSNHamSpectrograph, self).config_specific_par(scifile, inp_par=inp_par)
 
-        if self.get_meta_value(scifile, 'dispname')[0:4] == 'R400':
+        if scifile is None:
+            msgs.error('File required to set {0} configuration specific parameters.'.format(
+                       self.spectrograph))
+
+        # TODO: Is this required?
+        dispname = self.get_meta_value(scifile, 'dispname') #, required=True)
+        if dispname is None:
+            # NOTE: get_meta_value should issue a warning
+            return par
+        if dispname[:4] == 'R400':
             par['calibrations']['wavelengths']['reid_arxiv'] = 'gemini_gmos_r400_ham.fits'
-        elif self.get_meta_value(scifile, 'dispname')[0:4] == 'B600':
+        elif dispname[:4] == 'B600':
             par['calibrations']['wavelengths']['reid_arxiv'] = 'gemini_gmos_b600_ham.fits'
-        #
+        else:
+            # TODO: Should this fault?
+            msgs.warn('Disperser {0} not recognized for {1}.'.format(dispname, self.spectrograph))
         return par
+
 
 class GeminiGMOSNE2VSpectrograph(GeminiGMOSNSpectrograph):
     """
@@ -634,7 +659,7 @@ class GeminiGMOSNE2VSpectrograph(GeminiGMOSNSpectrograph):
         Args:
             scifile (str):
                 File to use when determining the configuration and how
-                to adjust the input parameters.
+                to adjust the input parameters.  Cannot be None.
             inp_par (:class:`pypeit.par.parset.ParSet`, optional):
                 Parameter set used for the full run of PypeIt.  If None,
                 use :func:`default_pypeit_par`.
@@ -646,10 +671,22 @@ class GeminiGMOSNE2VSpectrograph(GeminiGMOSNSpectrograph):
         # Start with instrument wide
         par = super(GeminiGMOSNE2VSpectrograph, self).config_specific_par(scifile, inp_par=inp_par)
 
-        if self.get_meta_value(scifile, 'dispname')[0:4] == 'R400':
+        if scifile is None:
+            msgs.error('File required to set {0} configuration specific parameters.'.format(
+                       self.spectrograph))
+
+        # TODO: Is this required?
+        dispname = self.get_meta_value(scifile, 'dispname') #, required=True)
+        if dispname is None:
+            # NOTE: get_meta_value should issue a warning
+            return par
+        if dispname[:4] == 'R400':
             par['calibrations']['wavelengths']['reid_arxiv'] = 'gemini_gmos_r400_e2v.fits'
-        #
+        else:
+            # TODO: Should this fault?
+            msgs.warn('Disperser {0} not recognized for {1}.'.format(dispname, self.spectrograph))
         return par
+
 
 def gemini_read_amp(inp, ext):
     """

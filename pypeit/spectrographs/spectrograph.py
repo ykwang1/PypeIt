@@ -153,6 +153,22 @@ class Spectrograph(object):
         # Return
         return nonlinear_counts
 
+    def config_par_frametypes(self):
+        """
+        Return the frame types that can be used to define the
+        configuration-specific parameters.
+
+        The list order can be placed in order of preference and will
+        be treated as such when initializing the
+        :class:`pypeit.pypeit.PypeIt` instance.
+
+        Returns:
+            :obj:`list`: A list of frametype strings with meta data
+            appropriate for defining the configuration-specific
+            parameters needed by the spectrograph.
+        """
+        return ['science', 'standard', 'arc', 'trace']
+
     def config_specific_par(self, scifile, inp_par=None):
         """
         Modify the PypeIt parameters to hard-wired values used for
@@ -161,7 +177,9 @@ class Spectrograph(object):
         Args:
             scifile (str):
                 File to use when determining the configuration and how
-                to adjust the input parameters.
+                to adjust the input parameters. For this base class
+                implementation, this can be None; however, that's not
+                true for all derived classes!
             inp_par (:class:`pypeit.par.parset.ParSet`, optional):
                 Parameter set used for the full run of PypeIt.  If None,
                 use :func:`default_pypeit_par`.
@@ -518,39 +536,55 @@ class Spectrograph(object):
         # Return
         return raw_img, hdu, exptime, rawdatasec_img, oscansec_img
 
-    def get_meta_value(self, inp, meta_key, required=False, ignore_bad_header=False, usr_row=None):
+    def get_meta_value(self, inp, meta_key, required=False, ignore_bad_header=False,
+                       frametype=None):
         """
         Return meta data from a given file (or its array of headers)
 
         Args:
-            inp (str or list):
-              Input filename or headarr list
-            meta_key: str or list of str
-            headarr: list, optional
-              List of headers
-            required: bool, optional
-              Require the meta key to be returnable
-            ignore_bad_header: bool, optional
-              Over-ride required;  not recommended
-            usr_row: Row
-              Provides user supplied frametype (and other things not used)
+            inp (:obj:`str`, :obj:`list):
+                Input filename or headarr list. Cannot be None.
+            meta_key (:obj:`str`, :obj:`list`):
+                One or more keywords containing the values to return.
+            required (:obj:`bool`, optional):
+                Require the meta key to be available in the header.
+                If False and the header does not contain the
+                requested data, None is returned. If True and
+                ``ignore_bad_headers`` is False and the headers does
+                not contain the request data, the function raises an
+                exception.
+            ignore_bad_header (:obj:`bool`, optional):
+                If the header value is the wrong type or unavailable,
+                ignore the problem and return None. WARNING: If this
+                is True and required is True, the code will not raise
+                an exception if the header keyword doesn't exist. It
+                will only warn the user of the problem.
+            frametype (:obj:`str`, :obj:`list`, optional):
+                One or more designated frame types of the input file
+                or fits headers. If the header keyword is not found,
+                this is compared with the frame types where this
+                keyword is required (if the latter are specified for
+                this spectrograph). If ``ignore_bad_headers`` is
+                False and the keyword is required for any of the
+                provided frame types, this method raises an
+                exception.
 
         Returns:
-            value: value or list of values
-
+            Returns the value read from the header. The return type
+            depends on the element read. The method attempts to cast
+            the return value into the type specified by the metadata
+            model. If a list of metadata keywords are provided, the
+            return type is a list.
         """
-        if isinstance(inp, str):
-            headarr = self.get_headarr(inp)
-        else:
-            headarr = inp
+        # Allow for the input to be None, but fault if it is.
+        if inp is None:
+            msgs.error('Must provide a file or header array with requested metadata.')
 
-        # Loop?
+        headarr = self.get_headarr(inp) if isinstance(inp, str) else inp
+
+        # If provided a list of keys, recursively call get_meta_value
         if isinstance(meta_key, list):
-            values = []
-            for mdict in meta_key:
-                values.append(self.get_meta_value(headarr, mdict, required=required))
-            #
-            return values
+            return [self.get_meta_value(headarr, key, required=required) for key in meta_key]
 
         # Are we prepared to provide this meta data?
         if meta_key not in self.meta.keys():
@@ -559,6 +593,7 @@ class Spectrograph(object):
             else:
                 msgs.warn("Requested meta data does not exist...")
                 return None
+
         # Is this not derivable?  If so, use the default
         #   or search for it as a compound method
         value = None
@@ -576,10 +611,10 @@ class Spectrograph(object):
             except (KeyError, TypeError):
                 value = None
 
-
-
-        # JFH Added this bit of code to deal with situations where the header card is there but the wrong type, e.g.
-        # MJD-OBS = 'null'
+        # Fix the type, if necessary (e.g. MJD-OBS = 'null'). This
+        # prevents crashes when the header value exists, but has the
+        # wrong type.
+        # TODO: Do we try to read any lists from headers?
         try:
             if self.meta_data_model[meta_key]['dtype'] == str:
                 retvalue = str(value).strip()
@@ -588,50 +623,68 @@ class Spectrograph(object):
             elif self.meta_data_model[meta_key]['dtype'] == float:
                 retvalue = float(value)
             elif self.meta_data_model[meta_key]['dtype'] == tuple:
-                assert isinstance(value, tuple)
+                if not isinstance(value, tuple):
+                    msgs.error('Expected tuple for header value {0}, instead it is a {1}.'.format(
+                               self.meta[meta_key]['card'], type(value)))
                 retvalue = value
             castable = True
         except:
             retvalue = None
             castable = False
 
-        # JFH Added the typing to prevent a crash below when the header value exists, but is the wrong type. This
-        # causes a crash below  when the value is cast.
-        if value is None or not castable:
-            # Was this required?
-            if required:
-                kerror = True
-                if not ignore_bad_header:
-                    # Is this meta required for this frame type (Spectrograph specific)
-                    if ('required_ftypes' in self.meta[meta_key]) and (usr_row is not None):
-                        kerror = False
-                        # Is it required?
-                        for ftype in usr_row['frametype'].split(','):
-                            if ftype in self.meta[meta_key]['required_ftypes']:
-                                kerror = True
-                    # Bomb out?
-                    if kerror:
-                        msgs.error('Required meta "{:s}" did not load!  You may have a corrupt header'.format(meta_key))
-                else:
-                    msgs.warn("Required card {:s} missing from your header.  Proceeding with risk..".format(
+        if value is not None and castable:
+            # Success
+            return retvalue
+
+        # Past here, the only value returned is None, unless an
+        # exception is raised
+
+        if not required:
+            # Value isn't required so return None
+            return None
+
+        if ignore_bad_header:
+            # Allowed to ignore bad headers
+            msgs.warn('Required header value {0} is missing.  Continuing, but beware!'.format(
                         self.meta[meta_key]['card']))
             return None
 
-        # JFH Old code which causes a crash when the type is wrong
-        # Deal with dtype (DO THIS HERE OR IN METADATA?  I'M TORN)
-        #if self.meta_data_model[meta_key]['dtype'] == str:
-        #    value = str(value).strip()
-        #elif self.meta_data_model[meta_key]['dtype'] == int:
-        #    value = int(value)
-        #elif self.meta_data_model[meta_key]['dtype'] == float:
-        #    value = float(value)
-        #elif self.meta_data_model[meta_key]['dtype'] == tuple:
-        #    assert isinstance(value, tuple)
-        #else:
-        #    embed()
-        # Return
+        # Past here, the code will always crash unless the keyword is
+        # not required for this frame type, as specified for this
+        # spectrograph.
+        err = self.required_for_frametype(meta_key, frametype)
+        if err or err is None:
+            # Cannot continue
+            # TODO: Provide some functionality that fixes bad headers?
+            msgs.error('Required header value {0} is missing!  Cannot continue.'.format(
+                        self.meta[meta_key]['card']))
+        return None
 
-        return retvalue
+    def required_for_frametype(self, meta_key, frametype):
+        """
+        Check if the keyword is required for the provided frame
+        type(s).
+
+        Args:
+            meta_key (:obj:`str`, :obj:`list`):
+                One or more keywords containing the values to return.
+            frametype (:obj:`str`, :obj:`list`):
+                One or more designated frame types of the input file
+                or fits headers. If a list is provided, each item in
+                the list must be a string. Individual strings can
+                provide comma-separated frame types.
+
+        Returns:
+            :obj:`bool`, None: If ``frametype`` is None or
+            ``required_ftypes`` is not defined for this metadata
+            keyword, None is returned. Otherwise, a flag is returned
+            if this keyword is required for this frametype.
+        """
+        if 'required_ftypes' not in self.meta[meta_key] or frametype is None:
+            return None
+        _frametype = frametype if isinstance(frametype, list) else [frametype]
+        _frametype = np.concatenate([f.split(',') for f in _frametype])
+        return np.any(np.isin(_frametype, self.meta[meta_key]['required_ftypes']))
 
     def validate_metadata(self):
         """
@@ -665,6 +718,7 @@ class Spectrograph(object):
         if np.any(indx):
             msgs.error('Meta data keys {0} not in metadata model'.format(meta_keys[indx]))
 
+    # TODO: Allow to select which header is desired?
     def get_headarr(self, inp, strict=True):
         """
         Read the header data from all the extensions in the file.

@@ -229,7 +229,7 @@ class ShaneKastBlueSpectrograph(ShaneKastSpectrograph):
         Args:
             scifile (str):
                 File to use when determining the configuration and how
-                to adjust the input parameters.
+                to adjust the input parameters.  Cannot be None.
             inp_par (:class:`pypeit.par.parset.ParSet`, optional):
                 Parameter set used for the full run of PypeIt.  If None,
                 use :func:`default_pypeit_par`.
@@ -238,18 +238,23 @@ class ShaneKastBlueSpectrograph(ShaneKastSpectrograph):
             :class:`pypeit.par.parset.ParSet`: The PypeIt paramter set
             adjusted for configuration specific parameter values.
         """
+        if scifile is None:
+            msgs.error('File required to set {0} configuration specific parameters.'.format(
+                       self.spectrograph))
+
         par = self.default_pypeit_par() if inp_par is None else inp_par
         # TODO: Should we allow the user to override these?
 
-        if self.get_meta_value(scifile, 'dispname') == '600/4310':
+        # TODO: Should this be this required?
+        dispname = self.get_meta_value(scifile, 'dispname') #, required=True)
+        if dispname == '600/4310':
             par['calibrations']['wavelengths']['reid_arxiv'] = 'shane_kast_blue_600.fits'
-        elif self.get_meta_value(scifile, 'dispname') == '452/3306':
+        elif dispname == '452/3306':
             par['calibrations']['wavelengths']['reid_arxiv'] = 'shane_kast_blue_452.fits'
-        elif self.get_meta_value(scifile, 'dispname') == '830/3460':  # NOT YET TESTED
+        elif dispname == '830/3460':  # NOT YET TESTED
             par['calibrations']['wavelengths']['reid_arxiv'] = 'shane_kast_blue_830.fits'
         else:
-            msgs.error("NEED TO ADD YOUR GRISM HERE!")
-        # Return
+            msgs.error('Disperser {0} not recognized for {1}.'.format(dispname, self.spectrograph))
         return par
 
 
@@ -322,7 +327,7 @@ class ShaneKastRedSpectrograph(ShaneKastSpectrograph):
         Args:
             scifile (str):
                 File to use when determining the configuration and how
-                to adjust the input parameters.
+                to adjust the input parameters.  Cannot be None.
             inp_par (:class:`pypeit.par.parset.ParSet`, optional):
                 Parameter set used for the full run of PypeIt.  If None,
                 use :func:`default_pypeit_par`.
@@ -331,7 +336,15 @@ class ShaneKastRedSpectrograph(ShaneKastSpectrograph):
             :class:`pypeit.par.parset.ParSet`: The PypeIt paramter set
             adjusted for configuration specific parameter values.
         """
+        if scifile is None:
+            msgs.error('File required to set {0} configuration specific parameters.'.format(
+                       self.spectrograph))
+
         par = self.default_pypeit_par() if inp_par is None else inp_par
+
+        # TODO: This data/oscan sec parsing should be in its own
+        # method. It never touches par, and touches Detector as well.
+        # Is this not handled somewhere else?
 
         # Parse from the header
         header = fits.open(scifile)[0].header
@@ -351,12 +364,11 @@ class ShaneKastRedSpectrograph(ShaneKastSpectrograph):
         xo2_1 = xo1_2+1
         xo2_2 = xo1_2+nover
 
-        datasec = ['[:,{}:{}]'.format(x1_0, x1_1), '[:,{}:{}]'.format(x2_0,x2_1)]    # These are rows, columns on the raw frame, 1-indexed
-        oscansec = ['[:,{}:{}]'.format(xo1_1,xo1_2), '[:,{}:{}]'.format(xo2_1,xo2_2)]
-
-        # Fill it up
-        self.detector[0]['datasec'] = datasec
-        self.detector[0]['oscansec'] = oscansec
+        # These are rows, columns on the raw frame, 1-indexed
+        self.detector[0]['datasec'] = ['[:,{}:{}]'.format(x1_0, x1_1),
+                                       '[:,{}:{}]'.format(x2_0,x2_1)]
+        self.detector[0]['oscansec'] = ['[:,{}:{}]'.format(xo1_1,xo1_2),
+                                        '[:,{}:{}]'.format(xo2_1,xo2_2)]
 
         return par
 
@@ -374,9 +386,25 @@ class ShaneKastRedSpectrograph(ShaneKastSpectrograph):
 
         # Required
         self.meta['dispname'] = dict(ext=0, card='GRATNG_N')
-        self.meta['dispangle'] = dict(ext=0, card='GRTILT_P')
+        self.meta['dispangle'] = dict(ext=0, card='GRTILT_P', rtol=2e-4)
         # Additional (for config)
 
+    def configuration_keys(self):
+        """
+        Return the metadata keys that defines a unique instrument
+        configuration.
+
+        This list is used by :class:`pypeit.metadata.PypeItMetaData` to
+        identify the unique configurations among the list of frames read
+        for a given reduction.
+
+        Returns:
+
+            list: List of keywords of data pulled from meta
+        """
+        cfg_keys = super(ShaneKastRedSpectrograph, self).configuration_keys()
+        # Add grating tilt
+        return cfg_keys+['dispangle']
 
 class ShaneKastRedRetSpectrograph(ShaneKastSpectrograph):
     """

@@ -170,11 +170,13 @@ class PypeItMetaData:
         data = {k:[] for k in self.spectrograph.meta.keys()}
         data['directory'] = ['None']*len(_files)
         data['filename'] = ['None']*len(_files)
+        
+        ignore_bad_header=self.par['rdx']['ignore_bad_headers']
 
         # Build the table
         for idx, ifile in enumerate(_files):
             # User data (for frame type)
-            usr_row = None if usrdata is None else usrdata[idx]
+            frametype = None if usrdata is None else usrdata[idx]['frametype']
 
             # Add the directory and file name to the table
             data['directory'][idx], data['filename'][idx] = os.path.split(ifile)
@@ -184,9 +186,9 @@ class PypeItMetaData:
 
             # Grab Meta
             for meta_key in self.spectrograph.meta.keys():
-                value = self.spectrograph.get_meta_value(headarr, meta_key, required=strict, usr_row=usr_row,
-                                        ignore_bad_header=self.par['rdx']['ignore_bad_headers'])
-                data[meta_key].append(value)
+                data[meta_key].append(self.spectrograph.get_meta_value(
+                                        headarr, meta_key, required=strict, frametype=frametype,
+                                        ignore_bad_header=self.par['rdx']['ignore_bad_headers']))
             msgs.info('Added metadata for {0}'.format(os.path.split(ifile)[1]))
 
         # JFH Changed the below to not crash if some files have None in their MJD. This is the desired behavior
@@ -1035,6 +1037,41 @@ class PypeItMetaData:
             science frame ID, if the latter is provided.
         """
         return self.frame_paths(self.find_frames(ftype, calib_ID=calib_ID))
+
+    def find_frame_combinations(self, comb_id):
+        """
+        Find frames and background frames associated with a specific
+        combination ID.
+
+        The internal data table must have a ``comb_id`` column;
+        otherwise, the method will fault. If the internal table does
+        not have a ``bkg_id`` column, an empty array is returned
+        (identical to if there are no associated background frames).
+
+        Args:
+            comb_id (:obj:`int`):
+                ID number for the combination group.
+
+        Returns:
+            tuple: Returns two `numpy.ndarray`_ objects, the list of
+            frames in the combination group and any associated
+            background frames. If no frames are associated with the
+            provided combination group, an empty array is returned.
+            The same is true of the background frames.
+
+        Raises:
+            ValueError:
+                Raised if the internal tables does not have a
+                ``comb_id`` column.
+        """
+        frames = np.where(self['comb_id'] == comb_id)[0]
+        if len(frames) == 0:
+            return frames, np.array([])
+        # Find all frames whose comb_id matches the current
+        # frames bkg_id. NOTE: This allows frames to be used
+        # more than once as a background image.
+        return frames, np.where((self['comb_id'] == self['bkg_id'][frames][0]) 
+                                & (self['comb_id'] >= 0))[0]
 
     def frame_paths(self, indx):
         """
