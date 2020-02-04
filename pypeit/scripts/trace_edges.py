@@ -55,6 +55,7 @@ def main(args):
     from pypeit.spectrographs.util import load_spectrograph
     from pypeit import traceimage, edgetrace, biasframe
     from pypeit.pypeit import PypeIt
+    from pypeit.par.pypeitpar import ExecutionPar
     from pypeit.core import parse
 
     from IPython import embed
@@ -67,7 +68,7 @@ def main(args):
         redux_path = os.path.abspath(os.path.split(pypeit_file)[0]
                                      if args.redux_path is None else args.redux_path)
 
-        rdx = PypeIt(pypeit_file, redux_path=redux_path)
+        rdx = PypeIt(pypeit_file, par=ExecutionPar(redux_path=redux_path))
         detectors = rdx.par['rdx']['detnum'] if args.detector is None else args.detectors
         # Save the spectrograph
         spec = rdx.spectrograph

@@ -9,6 +9,7 @@ that can be imported by submodules.
 import os
 import sys
 import signal
+import atexit
 import warnings
 
 def short_warning(message, category, filename, lineno, file=None, line=None):
@@ -18,7 +19,6 @@ def short_warning(message, category, filename, lineno, file=None, line=None):
     return ' %s: %s (%s:%s)\n' % (category.__name__, message, os.path.split(filename)[1], lineno)
 
 warnings.formatwarning = short_warning
-
 
 # Set version
 __version__ = '0.12.3dev'
@@ -43,11 +43,15 @@ def signal_handler(signalnum, handler):
     """
     if signalnum == 2:
         msgs.info('Ctrl+C was pressed. Ending processes...')
-        close_qa(msgs.pypeit_file)
-        msgs.close()
+        close_pypeit()
         sys.exit()
 
+def close_pypeit():
+    close_qa(msgs.pypeit_file)
+    msgs.close()
+
 signal.signal(signal.SIGINT, signal_handler)
+atexit.register(close_pypeit)
 
 # Ignore all warnings given by python
 # TODO: I'd rather we not do this.  Is there a way we can redirect

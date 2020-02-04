@@ -59,9 +59,8 @@ def test_run_pypeit():
         shutil.rmtree(outdir)
 
     # Run the setup
-    sargs = setup.parser(['-r', testrawdir, '-s', 'shane_kast_blue', '-c all', '-o',
-                          '--output_path', outdir])
-    setup.main(sargs)
+    setup.main(setup.parser(['-r', testrawdir, '-s', 'shane_kast_blue', '-c all', '-o',
+                             '--output_path', outdir]))
 
     # Change to the configuration directory and set the pypeit file
     configdir = os.path.join(outdir, 'shane_kast_blue_A')
@@ -69,16 +68,16 @@ def test_run_pypeit():
     assert os.path.isfile(pyp_file), 'PypeIt file not written.'
 
     # Perform the original reductions
-    pargs = run_pypeit.parser([pyp_file, '-o'])
-    run_pypeit.main(pargs)
+    args, specified = run_pypeit.parser([pyp_file, '-o'])
+    run_pypeit.main(args, specified)
 
     # Now try to reuse the old masters
-    pargs = run_pypeit.parser([pyp_file, '-o', '-m'])
-    run_pypeit.main(pargs)
+    args, specified = run_pypeit.parser([pyp_file, '-o', '-m'])
+    run_pypeit.main(args, specified)
 
     # Now try not overwriting and using the old masters
-    pargs = run_pypeit.parser([pyp_file, '-m'])
-    run_pypeit.main(pargs)
+    args, specified = run_pypeit.parser([pyp_file, '-m'])
+    run_pypeit.main(args, specified)
 
     # Clean-up
     shutil.rmtree(outdir)
@@ -104,11 +103,11 @@ def test_quicklook():
     # Raw path
     droot = os.path.join(os.environ['PYPEIT_DEV'], 'RAW_DATA', 'keck_lris_blue',
                          'long_600_4000_d560')
-    ql_mos.main(ql_mos.parser(['keck_lris_blue', droot, 'b150910_2033.fits.gz',
-                               'b150910_2051.fits.gz', 'b150910_2070.fits.gz', '--det=2',
-                               '--user_pixflat={0}'.format(
-                                   os.path.join(calib_dir,
-                                        'PYPEIT_LRISb_pixflat_B600_2x2_17sep2009.fits.gz'))]))
+    args, specified = ql_mos.parser(['keck_lris_blue', droot, 'b150910_2033.fits.gz',
+                                     'b150910_2051.fits.gz', 'b150910_2070.fits.gz', '--det=2',
+                                     '--user_pixflat={0}'.format(os.path.join(calib_dir,
+                                        'PYPEIT_LRISb_pixflat_B600_2x2_17sep2009.fits.gz'))])
+    ql_mos.main(args, specified)
 
 
 @dev_suite_required
@@ -151,7 +150,7 @@ def test_show_1dspec():
                              'spec1d_b27-J1217p3905_KASTb_2015May20T045733.560.fits')
     # Just list
     pargs = show_1dspec.parser([spec_file, '--list'])
-    show_1dspec.main(pargs, unit_test=True)
+    show_1dspec.main(pargs)
 
 
 @cooked_required
@@ -244,4 +243,3 @@ def test_coadd1d_2():
 # TODO: Include tests for coadd2d, sensfunc, flux_calib
 
 # TODO: Add test for object_finding
-

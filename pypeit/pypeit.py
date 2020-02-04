@@ -1,5 +1,8 @@
 """
 Main driver class for PypeIt run
+
+.. include common links, assuming primary doc root is up one directory
+.. include:: ../links.rst
 """
 import time
 import os
@@ -22,7 +25,7 @@ from pypeit import specobjs
 from pypeit.spectrographs.util import load_spectrograph
 
 from pypeit.par.util import parse_pypeit_file
-from pypeit.par import PypeItPar
+from pypeit.par.pypeitpar import PypeItPar, ExecutionPar
 from pypeit.metadata import PypeItMetaData
 
 from IPython import embed
@@ -35,30 +38,17 @@ class PypeIt:
         - Fill in list of attributes!
         - Explain the setup.
         - Give example usage.
+        - Provide docs link to pypeit file description.
 
     Args:
         pypeit_file (:obj:`str`):
             PypeIt filename.
-        verbosity (:obj:`int`, optional):
-            Verbosity level of system output.  Can be:
-
-                - 0: No output
-                - 1: Minimal output (default)
-                - 2: All output
-
-        overwrite (:obj:`bool`, optional):
-            Flag to overwrite any existing files/directories.
-        reuse_masters (:obj:`bool`, optional):
-            Reuse any pre-existing calibration files
-        logname (:obj:`str`, optional):
-            The name of an ascii log file with the details of the
-            reduction.
-        show: (:obj:`bool`, optional):
-            Show reduction steps via plots (which will block further
-            execution until clicked on) and outputs to ginga. Requires
-            remote control ginga session via ``ginga --modules=RC &``
-        redux_path (:obj:`str`, optional):
-            Over-ride reduction path in PypeIt file (e.g. Notebook usage)
+        par (:class:`pypeit.par.pypeitpar.ExecutionPar`, optional):
+            The parameters needed for the overall control-flow of a
+            full data reduction. If None, the default values are used
+            for all parameters. For a table with the current
+            keywords, defaults, and descriptions, see
+            :ref:`pypeitpar`.
 
     Attributes:
         pypeit_file (:obj:`str`):
@@ -68,8 +58,17 @@ class PypeIt:
         fitstbl (:obj:`pypit.metadata.PypeItMetaData`): holds the meta info
 
     """
-    def __init__(self, pypeit_file, verbosity=2, overwrite=True, reuse_masters=False, logname=None,
-                 show=False, redux_path=None):
+    # TODO: Allow the elements of ExecutionPar to be passed directly so
+    # that we don't have to pass it explicitly?
+    def __init__(self, pypeit_file, par=None):
+
+        # Check the input
+        if par is not None and not isinstance(par, ExecutionPar):
+            msgs.error('Provided paramters must have type ExecutionPar.')
+
+        # Collect initialization information messages until msgs is
+        # reset.
+        info_msgs = []
 
         # Load
         cfg_lines, data_files, frametype, usrdata, setups \
@@ -79,8 +78,12 @@ class PypeIt:
         # Spectrograph
         cfg = ConfigObj(cfg_lines)
         spectrograph_name = cfg['rdx']['spectrograph']
+        # TODO: Are all files appropriate for this load_spectrograph
+        # call? If not, should we find one that is like we do below for
+        # the configuration specific parameters.
         self.spectrograph = load_spectrograph(spectrograph_name, ifile=data_files[0])
-        msgs.info('Loaded spectrograph {0}'.format(self.spectrograph.spectrograph))
+        info_msgs += ['Loaded spectrograph {0}'.format(self.spectrograph.spectrograph)]
+        msgs.info(info_msgs[-1])
 
         # --------------------------------------------------------------
         # Get the full set of PypeIt parameters
@@ -97,22 +100,39 @@ class PypeIt:
             break
         #   - Configuration specific parameters for the spectrograph
         if config_ex_file is not None:
-            msgs.info('Setting configuration-specific parameters using {0}'.format(
-                      os.path.split(config_ex_file)[1]))
+            info_msgs += ['Setting configuration-specific parameters using {0}'.format(
+                            os.path.split(config_ex_file)[1])]
+            msgs.info(info_msgs[-1])
         # NOTE: The call below will fault if the spectrograph requires
-        # a file to set the configuration specific parameters
+        # a file to set the configuration specific parameters and
+        # config_ex_file is still None.
         spectrograph_cfg_lines = self.spectrograph.config_specific_par(config_ex_file).to_config()
         #   - Build the full set, merging with any user-provided
         #     parameters
         self.par = PypeItPar.from_cfg_lines(cfg_lines=spectrograph_cfg_lines, merge_with=cfg_lines)
-        msgs.info('Built full PypeIt parameter set.')
-
-        # Check the output paths are ready
-        if redux_path is not None:
-            self.par['rdx']['redux_path'] = redux_path
-
+        #   - Set the logfile
+        if self.par['rdx']['logfile'] == 'default':
+            self.par['rdx']['logfile'] = PypeIt.default_log_file(self.pypeit_file)
+        #   - Merge provided execution parameters into self.par
+        if par is not None:
+            self.merge_exec_par(par)
+        info_msgs += ['Built full PypeIt parameter set.']
+        msgs.info(info_msgs[-1])
         # TODO: Write the full parameter set here?
         # --------------------------------------------------------------
+
+        # Execution behavior
+        # TODO: Just use the parameters directly?
+        self.logname = self.par['rdx']['logfile']
+        self.reuse_masters = self.par['rdx']['reuse_masters']
+        self.verbosity = self.par['rdx']['verbosity']
+        self.overwrite = self.par['rdx']['overwrite']
+        self.show = self.par['rdx']['show']
+
+        # Reset the logger and print the useful messages so far.
+        self.msgs_reset()
+        for m in info_msgs:
+            msgs.info(m, log_only=True)
 
         # --------------------------------------------------------------
         # Build the meta data
@@ -123,19 +143,10 @@ class PypeIt:
         #   - Interpret automated or user-provided data from the PypeIt
         #   file
         self.fitstbl.finalize_usr_build(frametype, setups[0])
-        # --------------------------------------------------------------
         #   - Write .calib file (For QA naming amongst other things)
         calib_file = pypeit_file.replace('.pypeit', '.calib')
         self.fitstbl.write_calib(calib_file)
-
-        # Other Internals
-        self.logname = logname
-        self.overwrite = overwrite
-
-        # Currently the runtime argument determines the behavior for
-        # reuse_masters.
-        self.reuse_masters = reuse_masters
-        self.show = show
+        # --------------------------------------------------------------
 
         # TODO: I think this should go back to being an @property
         # method. I also think everything should always be relative to
@@ -163,10 +174,8 @@ class PypeIt:
                                                  qadir=self.qa_path,
                                                  reuse_masters=self.reuse_masters,
                                                  show=self.show)
-        # Init
-        self.verbosity = verbosity
-        # TODO: I don't think this ever used
 
+        # Declare remaining attributes
         self.frame = None
         self.det = None
 
@@ -175,6 +184,25 @@ class PypeIt:
         self.sciI = None
         self.obstime = None
         self.ir_redux = False
+
+    @staticmethod
+    def default_log_file(pypeit_file):
+        """
+        Return the name of the default log file.
+
+        The default logfile has the same name as the pypeit file,
+        with the extension replaced by '.log'.
+
+        Args:
+            pypeit_file (:obj:`str`):
+                Name of the pypeit file used for the reductions. Can
+                be the file name only or the full path to the file.
+
+        Returns:
+            :obj:`str`: The name of the log file. The returned string
+            does *not* include any root path.
+        """
+        return '{0}.log'.format(os.path.splitext(os.path.split(pypeit_file)[1])[0])
 
     @property
     def science_path(self):
@@ -186,6 +214,24 @@ class PypeIt:
         """Return the path to the top-level QA directory."""
         return None if self.par['rdx']['qadir'] is None else \
                     os.path.join(self.par['rdx']['redux_path'], self.par['rdx']['qadir'])
+
+    def merge_exec_par(self, par):
+        """
+        Merge parameters provided on instantiation with those read
+        from the pypeit file.
+
+        Precedence is always given to the input parameters. Only
+        parameters in the provided set that are *not* the same as the
+        default will overwrite the current :attr:`par` constructed
+        from the pypeit file.
+
+        Args:
+            par (:class:`pypeit.par.pypeitpar.ExecutionPar`):
+                The parameters used to overwrite :attr:`par`.
+        """
+        for key in par.keys():
+            if par.specified[key]:
+                self.par['rdx'][key] = par[key]
 
     def build_qa(self):
         """
@@ -283,6 +329,8 @@ class PypeIt:
         can_be_None = ['flexure', 'fluxcalib']
         self.par.validate_keys(required=required, can_be_None=can_be_None)
 
+        msgs.info('Reduction started at {0}'.format(time.strftime("%a %d %b %Y %H:%M:%S",
+                                                                  time.localtime())))
         self.tstart = time.time()
 
         # Find the standard and science frames
@@ -303,7 +351,10 @@ class PypeIt:
         for i in range(self.fitstbl.n_calib_groups * int(np.sum(is_standard) > 0)):
             # Reduce all the standard frames, loop on unique comb_id
             grp_standards = frame_indx[is_standard & self.fitstbl.find_calib_group(i)]
-            for comb_id in enumerate(np.unique(self.fitstbl['comb_id'][grp_standards])):
+            for comb_id in np.unique(self.fitstbl['comb_id'][grp_standards]):
+                # TODO: This loop works because combination groups can
+                # only be associated with one calibration group. Will
+                # need to revisit this method if that no longer holds.
                 self.reduce_combination_group(comb_id)
 
         # Define the standard star to use during the science
@@ -316,7 +367,10 @@ class PypeIt:
         for i in range(self.fitstbl.n_calib_groups * int(np.sum(is_science) > 0)):
             # Reduce all the standard frames, loop on unique comb_id
             grp_science = frame_indx[is_science & self.fitstbl.find_calib_group(i)]
-            for comb_id in enumerate(np.unique(self.fitstbl['comb_id'][grp_science])):
+            for comb_id in np.unique(self.fitstbl['comb_id'][grp_science]):
+                # TODO: This loop works because combination groups can
+                # only be associated with one calibration group. Will
+                # need to revisit this method if that no longer holds.
                 self.reduce_combination_group(comb_id, stdfile=stdfile)
 
         # Done
@@ -380,6 +434,10 @@ class PypeIt:
         standard and science frames in the correct order, use
         :func:`reduce_all`.
 
+        .. warning::
+            If no frames are found in this combination group, the
+            method issues a warning and returns.
+
         Args:
             comb_id (:obj:`int`):
                 The combination ID to reduce.
@@ -391,6 +449,10 @@ class PypeIt:
         # Find the frames to combine and any associated background
         # frames
         frames, bg_frames = self.fitstbl.find_frame_combinations(comb_id)
+        if len(frames) == 0:
+            # TODO: Should this fault?
+            msgs.warn('No frames associated with combination group: {0}'.format(comb_id))
+            return
         if not self.outfile_exists(frames[0]) or self.overwrite:
             std_dict = self.reduce_exposure(frames, bg_frames=bg_frames, std_outfile=stdfile)
             # TODO come up with sensible naming convention for

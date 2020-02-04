@@ -51,11 +51,17 @@ def test_manualextraction():
     pypeitpar.ManualExtractionPar()
 
 def test_spectrographs():
-    s = pypeitpar.ReduxPar.valid_spectrographs()
+    s = pypeitpar.ExecutionPar.valid_spectrographs()
     assert 'keck_lris_blue' in s, 'Expected to find keck_lris_blue as a spectrograph!'
 
 def test_redux():
-    pypeitpar.ReduxPar()
+    pypeitpar.ExecutionPar()
+
+def test_redux_specified():
+    p = pypeitpar.ExecutionPar(spectrograph='shane_kast_blue', logfile='default')
+    assert p.specified['spectrograph'], 'Should have set spectrograph as being specified.'
+    assert p.specified['logfile'], 'Should have set logfile as being specified.'
+    assert not p.specified['overwrite'], 'Should not have set overwrite as being specified.'
 
 def test_wavelengthsolution():
     pypeitpar.WavelengthSolutionPar()

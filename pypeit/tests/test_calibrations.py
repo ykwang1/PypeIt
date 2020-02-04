@@ -79,6 +79,9 @@ def multi_caliBrate_reuse(multi_caliBrate):
 ###################################################
 # TESTS BEGIN HERE
 
+# TODO: Make these simpler. We don't need to have N tests where redo
+# all the steps from the previous tests. We can have one test that does
+# all the steps and does the relevant asserts along the way...
 
 def test_instantiate(fitstbl):
     par = pypeitpar.PypeItPar()
