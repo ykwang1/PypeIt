@@ -10,7 +10,7 @@ def specified_args(args, options=None):
     instance were defined by the user. 
 
     Args:
-        args (`argparse.ArgumentParser`):
+        args (`argparse.ArgumentParser`_):
             Object used to parse the command-line arguments.
     """
     spec_keys = list(args._option_string_actions.keys())

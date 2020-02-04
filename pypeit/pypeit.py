@@ -55,6 +55,8 @@ class PypeIt:
         fitstbl (:obj:`pypit.metadata.PypeItMetaData`): holds the meta info
 
     """
+    # TODO: Allow the elements of ExecutionPar to be passed directly so
+    # that we don't have to pass it explicitly?
     def __init__(self, pypeit_file, par=None):
 
         # Check the input

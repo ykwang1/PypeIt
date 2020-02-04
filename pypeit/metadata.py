@@ -171,8 +171,6 @@ class PypeItMetaData:
         data['directory'] = ['None']*len(_files)
         data['filename'] = ['None']*len(_files)
         
-        ignore_bad_header=self.par['rdx']['ignore_bad_headers']
-
         # Build the table
         for idx, ifile in enumerate(_files):
             # User data (for frame type)
