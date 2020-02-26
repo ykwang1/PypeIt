@@ -122,6 +122,8 @@ class GeminiGNIRSSpectrograph(spectrograph.Spectrograph):
         par['calibrations']['pixelflatframe']['exprng'] = [None, 30]
         par['calibrations']['traceframe']['exprng'] = [None, 30]
         par['calibrations']['standardframe']['exprng'] = [None, 30]
+        par['calibrations']['arcframe']['exprng'] = [30, None]
+        par['calibrations']['tiltframe']['exprng'] = [30, None]
         par['scienceframe']['exprng'] = [30, None]
 
         # Do not bias subtract
@@ -182,7 +184,7 @@ class GeminiGNIRSSpectrograph(spectrograph.Spectrograph):
             # Don't type pinhole, dark, or bias frames
             return np.zeros(len(fitstbl), dtype=bool)
         if ftype in ['arc', 'tilt']:
-            return good_exp & (fitstbl['idname'] == 'ARC')
+            return good_exp & (fitstbl['idname'] == 'OBJECT')
 
         msgs.warn('Cannot determine if frames are of type {0}.'.format(ftype))
         return np.zeros(len(fitstbl), dtype=bool)
@@ -218,6 +220,9 @@ class GeminiGNIRSSpectrograph(spectrograph.Spectrograph):
 
     @property
     def order_spat_pos(self):
+        # Old data, i.e. for 2010
+        #ord_spat_pos = np.array([0.241211 , 0.3173828, 0.387695, 0.456054, 0.530273, 0.640625])
+        # New data
         ord_spat_pos = np.array([0.2955097 , 0.37635756, 0.44952223, 0.51935601, 0.59489503, 0.70210309])
         return ord_spat_pos
 
