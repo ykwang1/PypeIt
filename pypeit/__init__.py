@@ -21,7 +21,7 @@ def short_warning(message, category, filename, lineno, file=None, line=None):
 warnings.formatwarning = short_warning
 
 # Set version
-__version__ = '0.12.3dev'
+__version__ = '0.12.4dev'
 
 # Report current coverage
 __coverage__ = 0.55
