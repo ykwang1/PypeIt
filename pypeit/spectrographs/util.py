@@ -144,5 +144,8 @@ def load_spectrograph(spectrograph):
     if spectrograph == 'not_alfosc':
         return spectrographs.not_alfosc.NOTALFOSCSpectrograph()
 
+    if spectrograph == 'magellan_imacs':
+        return spectrographs.magellan_imacs.MagellanIMACSSpectrograph()
+
     msgs.error('{0} is not a supported spectrograph.'.format(spectrograph))
 
