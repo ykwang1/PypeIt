@@ -8,7 +8,7 @@ from pypeit import msgs
 from pypeit import debugger
 from pypeit import utils
 import copy
-from astropy.extern.six import string_types
+#from astropy.extern.six import string_types
 
 """This module corresponds to the image directory in idlutils.
 """
