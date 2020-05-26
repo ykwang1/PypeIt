@@ -501,7 +501,7 @@ class VLTXShooterVISSpectrograph(VLTXShooterSpectrograph):
         # These are the defaults
         par['calibrations']['tilts']['tracethresh'] = 15
         par['calibrations']['tilts']['spat_order'] =  3
-        par['calibrations']['tilts']['spec_order'] =  5 # [5, 5, 5] + 12*[7] # + [5]
+        par['calibrations']['tilts']['spec_order'] =  3 # [5, 5, 5] + 12*[7] # + [5]
 
         # 1D wavelength solution
         par['calibrations']['wavelengths']['lamps'] = ['ThAr_XSHOOTER_VIS']
@@ -658,6 +658,7 @@ class VLTXShooterVISSpectrograph(VLTXShooterSpectrograph):
 
         if det == 1:
             bpm_img[2912//binspectral_bpm:,842//binspatial_bpm:844//binspatial_bpm] = 1.
+            bpm_img[3548//binspectral_bpm:,1249//binspatial_bpm:1252//binspatial_bpm] = 1.
         return bpm_img
 
 
