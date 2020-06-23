@@ -287,7 +287,7 @@ class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
         # Start with instrument wide
         par = super(LBTMODS1RSpectrograph, self).config_specific_par(scifile, inp_par=inp_par)
 
-        if self.get_meta_value(scifile, 'dispname')[0:4] == 'G670L':
+        if self.get_meta_value(scifile, 'dispname') == 'G670L':
             par['calibrations']['wavelengths']['method'] = 'full_template'
             par['calibrations']['wavelengths']['reid_arxiv'] = 'lbt_mods1r_red.fits'
 
@@ -538,7 +538,7 @@ class LBTMODS2RSpectrograph(LBTMODSSpectrograph):
         # Start with instrument wide
         par = super(LBTMODS2RSpectrograph, self).config_specific_par(scifile, inp_par=inp_par)
 
-        if self.get_meta_value(scifile, 'dispname')[0:4] == 'G670L':
+        if self.get_meta_value(scifile, 'dispname') == 'G670L':
             par['calibrations']['wavelengths']['method'] = 'full_template'
             par['calibrations']['wavelengths']['reid_arxiv'] = 'lbt_mods2r_red.fits'
 
