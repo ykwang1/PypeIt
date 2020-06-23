@@ -377,7 +377,7 @@ class LBTMODS1BSpectrograph(LBTMODSSpectrograph):
         par['calibrations']['slitedges']['edge_thresh'] = 100.
 
         # Set wave tilts order
-        par['calibrations']['tilts']['spat_order'] = 3
+        par['calibrations']['tilts']['spat_order'] = 5
         par['calibrations']['tilts']['spec_order'] = 5
         par['calibrations']['tilts']['maxdev_tracefit'] = 0.02
         par['calibrations']['tilts']['maxdev2d'] = 0.02
@@ -494,10 +494,10 @@ class LBTMODS2RSpectrograph(LBTMODSSpectrograph):
 
         # slit
         par['calibrations']['slitedges']['sync_predict'] = 'nearest'
-        par['calibrations']['slitedges']['edge_thresh'] = 100.
+        par['calibrations']['slitedges']['edge_thresh'] = 500.
 
         # Set wave tilts order
-        par['calibrations']['tilts']['spat_order'] = 3
+        par['calibrations']['tilts']['spat_order'] = 5
         par['calibrations']['tilts']['spec_order'] = 5
         par['calibrations']['tilts']['maxdev_tracefit'] = 0.02
         par['calibrations']['tilts']['maxdev2d'] = 0.02
@@ -615,7 +615,7 @@ class LBTMODS2BSpectrograph(LBTMODSSpectrograph):
         par['calibrations']['slitedges']['edge_thresh'] = 100.
 
         # Set wave tilts order
-        par['calibrations']['tilts']['spat_order'] = 3
+        par['calibrations']['tilts']['spat_order'] = 5
         par['calibrations']['tilts']['spec_order'] = 5
         par['calibrations']['tilts']['maxdev_tracefit'] = 0.02
         par['calibrations']['tilts']['maxdev2d'] = 0.02
