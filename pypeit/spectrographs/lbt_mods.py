@@ -248,9 +248,7 @@ class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
         #par['calibrations']['wavelengths']['lamps'] = ['XeI','ArII','ArI','NeI','KrI']]
         par['calibrations']['wavelengths']['lamps'] = ['ArI','NeI','KrI','XeI']
         #par['calibrations']['wavelengths']['lamps'] = ['OH_MODS']
-        #par['calibrations']['wavelengths']['nonlinear_counts'] = self.detector[0]['nonlinear'] * self.detector[0]['saturation']
         par['calibrations']['wavelengths']['n_first'] = 3
-        #par['calibrations']['wavelengths']['n_final'] = 4
         par['calibrations']['wavelengths']['match_toler'] = 2.5
 
         # slit
@@ -263,12 +261,35 @@ class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
         par['calibrations']['tilts']['maxdev_tracefit'] = 0.02
         par['calibrations']['tilts']['maxdev2d'] = 0.02
 
-        # reidentification stuff
-        #par['calibrations']['wavelengths']['method'] = 'reidentify'
-        #par['calibrations']['wavelengths']['reid_arxiv'] = 'shane_kast_blue_600_4310_d55.json'
 
-        #par['calibrations']['biasframe']['useframe'] = 'bias'
+        return par
 
+    def config_specific_par(self, scifile, inp_par=None):
+        """
+        Modify the PypeIt parameters to hard-wired values used for
+        specific instrument configurations.
+
+        .. todo::
+            Document the changes made!
+
+        Args:
+            scifile (str):
+                File to use when determining the configuration and how
+                to adjust the input parameters.
+            inp_par (:class:`pypeit.par.parset.ParSet`, optional):
+                Parameter set used for the full run of PypeIt.  If None,
+                use :func:`default_pypeit_par`.
+
+        Returns:
+            :class:`pypeit.par.parset.ParSet`: The PypeIt paramter set
+            adjusted for configuration specific parameter values.
+        """
+        # Start with instrument wide
+        par = super(LBTMODS1RSpectrograph, self).config_specific_par(scifile, inp_par=inp_par)
+
+        if self.get_meta_value(scifile, 'dispname')[0:4] == 'G670L':
+            par['calibrations']['wavelengths']['method'] = 'full_template'
+            par['calibrations']['wavelengths']['reid_arxiv'] = 'lbt_mods1r_red.fits'
 
         return par
 
@@ -369,7 +390,6 @@ class LBTMODS1BSpectrograph(LBTMODSSpectrograph):
         par['calibrations']['wavelengths']['sigdetect'] = 5.
         par['calibrations']['wavelengths']['rms_threshold'] = 0.20
         par['calibrations']['wavelengths']['lamps'] = ['XeI','ArII','ArI','NeI','KrI']
-        #par['calibrations']['wavelengths']['nonlinear_counts'] = self.detector[0]['nonlinear'] * self.detector[0]['saturation']
         par['calibrations']['wavelengths']['n_first'] = 1
 
         # slit
@@ -381,13 +401,6 @@ class LBTMODS1BSpectrograph(LBTMODSSpectrograph):
         par['calibrations']['tilts']['spec_order'] = 5
         par['calibrations']['tilts']['maxdev_tracefit'] = 0.02
         par['calibrations']['tilts']['maxdev2d'] = 0.02
-
-        # reidentification stuff
-        #par['calibrations']['wavelengths']['method'] = 'reidentify'
-        #par['calibrations']['wavelengths']['reid_arxiv'] = 'shane_kast_blue_600_4310_d55.json'
-
-        #par['calibrations']['biasframe']['useframe'] = 'bias'
-
 
         return par
 
@@ -487,9 +500,7 @@ class LBTMODS2RSpectrograph(LBTMODSSpectrograph):
         #par['calibrations']['wavelengths']['lamps'] = ['XeI','ArII','ArI','NeI','KrI']]
         par['calibrations']['wavelengths']['lamps'] = ['ArI','NeI','KrI','XeI']
         #par['calibrations']['wavelengths']['lamps'] = ['OH_MODS']
-        #par['calibrations']['wavelengths']['nonlinear_counts'] = self.detector[0]['nonlinear'] * self.detector[0]['saturation']
         par['calibrations']['wavelengths']['n_first'] = 3
-        #par['calibrations']['wavelengths']['n_final'] = 4
         par['calibrations']['wavelengths']['match_toler'] = 2.5
 
         # slit
@@ -502,13 +513,36 @@ class LBTMODS2RSpectrograph(LBTMODSSpectrograph):
         par['calibrations']['tilts']['maxdev_tracefit'] = 0.02
         par['calibrations']['tilts']['maxdev2d'] = 0.02
 
-        # reidentification stuff
-        #par['calibrations']['wavelengths']['method'] = 'reidentify'
-        #par['calibrations']['wavelengths']['reid_arxiv'] = 'shane_kast_blue_600_4310_d55.json'
+        return par
 
-        #par['calibrations']['biasframe']['useframe'] = 'bias'
+    def config_specific_par(self, scifile, inp_par=None):
+        """
+        Modify the PypeIt parameters to hard-wired values used for
+        specific instrument configurations.
 
+        .. todo::
+            Document the changes made!
 
+        Args:
+            scifile (str):
+                File to use when determining the configuration and how
+                to adjust the input parameters.
+            inp_par (:class:`pypeit.par.parset.ParSet`, optional):
+                Parameter set used for the full run of PypeIt.  If None,
+                use :func:`default_pypeit_par`.
+
+        Returns:
+            :class:`pypeit.par.parset.ParSet`: The PypeIt paramter set
+            adjusted for configuration specific parameter values.
+        """
+        # Start with instrument wide
+        par = super(LBTMODS2RSpectrograph, self).config_specific_par(scifile, inp_par=inp_par)
+
+        if self.get_meta_value(scifile, 'dispname')[0:4] == 'G670L':
+            par['calibrations']['wavelengths']['method'] = 'full_template'
+            par['calibrations']['wavelengths']['reid_arxiv'] = 'lbt_mods2r_red.fits'
+
+        #
         return par
 
     def bpm(self, filename, det, shape=None, msbias=None):
@@ -607,7 +641,6 @@ class LBTMODS2BSpectrograph(LBTMODSSpectrograph):
         par['calibrations']['wavelengths']['sigdetect'] = 5.
         par['calibrations']['wavelengths']['rms_threshold'] = 0.20
         par['calibrations']['wavelengths']['lamps'] = ['XeI','ArII','ArI','NeI','KrI']
-        #par['calibrations']['wavelengths']['nonlinear_counts'] = self.detector[0]['nonlinear'] * self.detector[0]['saturation']
         par['calibrations']['wavelengths']['n_first'] = 1
 
         # slit
@@ -619,13 +652,6 @@ class LBTMODS2BSpectrograph(LBTMODSSpectrograph):
         par['calibrations']['tilts']['spec_order'] = 5
         par['calibrations']['tilts']['maxdev_tracefit'] = 0.02
         par['calibrations']['tilts']['maxdev2d'] = 0.02
-
-        # reidentification stuff
-        #par['calibrations']['wavelengths']['method'] = 'reidentify'
-        #par['calibrations']['wavelengths']['reid_arxiv'] = 'shane_kast_blue_600_4310_d55.json'
-
-        #par['calibrations']['biasframe']['useframe'] = 'bias'
-
 
         return par
 
