@@ -151,7 +151,8 @@ class LBTMODSSpectrograph(spectrograph.Spectrograph):
         # TODO These parameters should probably be stored in the detector par
 
         # Number of amplifiers (could pull from DetectorPar but this avoids needing the spectrograph, e.g. view_fits)
-        numamp = 4
+        detector_par = self.get_detector_par(hdu, det if det is None else 1)
+        numamp = detector_par['numamplifiers']
 
         # get the x and y binning factors...
         xbin, ybin = head['CCDXBIN'], head['CCDYBIN']
@@ -189,7 +190,7 @@ class LBTMODSSpectrograph(spectrograph.Spectrograph):
         # Need the exposure time
         exptime = hdu[self.meta['exptime']['ext']].header[self.meta['exptime']['card']]
         # Return, transposing array back to orient the overscan properly
-        return np.flipud(array), hdu, exptime, np.flipud(rawdatasec_img), np.flipud(oscansec_img)
+        return detector_par,np.flipud(array), hdu, exptime, np.flipud(rawdatasec_img), np.flipud(oscansec_img)
 
 
 class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
