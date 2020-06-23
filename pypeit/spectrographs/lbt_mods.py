@@ -505,7 +505,7 @@ class LBTMODS2RSpectrograph(LBTMODSSpectrograph):
 
         # slit
         par['calibrations']['slitedges']['sync_predict'] = 'nearest'
-        par['calibrations']['slitedges']['edge_thresh'] = 500.
+        par['calibrations']['slitedges']['edge_thresh'] = 300.
 
         # Set wave tilts order
         par['calibrations']['tilts']['spat_order'] = 5
