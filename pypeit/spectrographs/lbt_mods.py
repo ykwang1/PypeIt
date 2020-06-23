@@ -273,7 +273,7 @@ class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
         return par
 
 
-    def bpm(self, filename, det, shape=None):
+    def bpm(self, filename, det, shape=None, msbias=None):
         """ Generate a BPM
 
         Parameters
@@ -290,6 +290,9 @@ class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
 
         # Get the empty bpm: force is always True
         bpm_img = self.empty_bpm(shape=shape, filename=filename, det=det)
+        # Fill in bad pixels if a master bias frame is provided
+        if msbias is not None:
+            return self.bpm_frombias(msbias, det, bpm_img)
 
         msgs.info("Using hard-coded BPM for  MODS1R")
 
@@ -388,7 +391,7 @@ class LBTMODS1BSpectrograph(LBTMODSSpectrograph):
 
         return par
 
-    def bpm(self, filename, det, shape=None):
+    def bpm(self, filename, det, shape=None, msbias=None):
         """ Generate a BPM
 
         Parameters
@@ -406,6 +409,9 @@ class LBTMODS1BSpectrograph(LBTMODSSpectrograph):
         #       and modify the BPM accordingly
         # Get the empty bpm: force is always True
         bpm_img = self.empty_bpm(shape=shape, filename=filename, det=det)
+        # Fill in bad pixels if a master bias frame is provided
+        if msbias is not None:
+            return self.bpm_frombias(msbias, det, bpm_img)
 
         msgs.info("Using hard-coded BPM for  MODS1B")
 
@@ -505,7 +511,7 @@ class LBTMODS2RSpectrograph(LBTMODSSpectrograph):
 
         return par
 
-    def bpm(self, filename, det, shape=None):
+    def bpm(self, filename, det, shape=None, msbias=None):
         """ Generate a BPM
 
         Parameters
@@ -521,6 +527,9 @@ class LBTMODS2RSpectrograph(LBTMODSSpectrograph):
         """
         # Get the empty bpm: force is always True
         bpm_img = self.empty_bpm(shape=shape, filename=filename, det=det)
+        # Fill in bad pixels if a master bias frame is provided
+        if msbias is not None:
+            return self.bpm_frombias(msbias, det, bpm_img)
 
         msgs.info("Using hard-coded BPM for  MODS2R")
 
@@ -620,7 +629,7 @@ class LBTMODS2BSpectrograph(LBTMODSSpectrograph):
 
         return par
 
-    def bpm(self, filename, det, shape=None):
+    def bpm(self, filename, det, shape=None, msbias=None):
         """ Generate a BPM
 
         Parameters
@@ -639,6 +648,9 @@ class LBTMODS2BSpectrograph(LBTMODSSpectrograph):
 
         # Get the empty bpm: force is always True
         bpm_img = self.empty_bpm(shape=shape, filename=filename, det=det)
+        # Fill in bad pixels if a master bias frame is provided
+        if msbias is not None:
+            return self.bpm_frombias(msbias, det, bpm_img)
 
         msgs.info("Using hard-coded BPM for  MODS2B")
 
