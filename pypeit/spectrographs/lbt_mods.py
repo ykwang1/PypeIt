@@ -255,7 +255,7 @@ class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
 
         # slit
         par['calibrations']['slitedges']['sync_predict'] = 'nearest'
-        par['calibrations']['slitedges']['edge_thresh'] = 700.
+        par['calibrations']['slitedges']['edge_thresh'] = 100.
 
         # Set wave tilts order
         par['calibrations']['tilts']['spat_order'] = 5
@@ -374,7 +374,7 @@ class LBTMODS1BSpectrograph(LBTMODSSpectrograph):
 
         # slit
         par['calibrations']['slitedges']['sync_predict'] = 'nearest'
-        par['calibrations']['slitedges']['edge_thresh'] = 700.
+        par['calibrations']['slitedges']['edge_thresh'] = 100.
 
         # Set wave tilts order
         par['calibrations']['tilts']['spat_order'] = 3
@@ -494,7 +494,7 @@ class LBTMODS2RSpectrograph(LBTMODSSpectrograph):
 
         # slit
         par['calibrations']['slitedges']['sync_predict'] = 'nearest'
-        par['calibrations']['slitedges']['edge_thresh'] = 700.
+        par['calibrations']['slitedges']['edge_thresh'] = 100.
 
         # Set wave tilts order
         par['calibrations']['tilts']['spat_order'] = 3
@@ -612,7 +612,7 @@ class LBTMODS2BSpectrograph(LBTMODSSpectrograph):
 
         # slit
         par['calibrations']['slitedges']['sync_predict'] = 'nearest'
-        par['calibrations']['slitedges']['edge_thresh'] = 700.
+        par['calibrations']['slitedges']['edge_thresh'] = 100.
 
         # Set wave tilts order
         par['calibrations']['tilts']['spat_order'] = 3
