@@ -206,8 +206,8 @@ class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
 
     def get_detector_par(self, hdu, det):
         # Binning
-        xbin = self.get_meta_value(self.get_headarr(hdu), 'CCDXBIN')
-        ybin = self.get_meta_value(self.get_headarr(hdu), 'CCDYBIN')
+        xbin = hdu[0].header['CCDXBIN']
+        ybin = hdu[0].header['CCDYBIN']
         binning = '{:},{:}'.format(xbin,ybin)
 
         # Detector 1
@@ -330,8 +330,8 @@ class LBTMODS1BSpectrograph(LBTMODSSpectrograph):
 
     def get_detector_par(self, hdu, det):
         # Binning
-        xbin = self.get_meta_value(self.get_headarr(hdu), 'CCDXBIN')
-        ybin = self.get_meta_value(self.get_headarr(hdu), 'CCDYBIN')
+        xbin = hdu[0].header['CCDXBIN']
+        ybin = hdu[0].header['CCDYBIN']
         binning = '{:},{:}'.format(xbin,ybin)
 
         # Detector 1
@@ -445,8 +445,8 @@ class LBTMODS2RSpectrograph(LBTMODSSpectrograph):
 
     def get_detector_par(self, hdu, det):
         # Binning
-        xbin = self.get_meta_value(self.get_headarr(hdu), 'CCDXBIN')
-        ybin = self.get_meta_value(self.get_headarr(hdu), 'CCDYBIN')
+        xbin = hdu[0].header['CCDXBIN']
+        ybin = hdu[0].header['CCDYBIN']
         binning = '{:},{:}'.format(xbin,ybin)
 
         # Detector 1
@@ -568,8 +568,8 @@ class LBTMODS2BSpectrograph(LBTMODSSpectrograph):
 
     def get_detector_par(self, hdu, det):
         # Binning
-        xbin = self.get_meta_value(self.get_headarr(hdu), 'CCDXBIN')
-        ybin = self.get_meta_value(self.get_headarr(hdu), 'CCDYBIN')
+        xbin = hdu[0].header['CCDXBIN']
+        ybin = hdu[0].header['CCDYBIN']
         binning = '{:},{:}'.format(xbin,ybin)
 
         # Detector 1
