@@ -240,6 +240,7 @@ class LBTMODS1RSpectrograph(LBTMODSSpectrograph):
         """
         par = LBTMODSSpectrograph.default_pypeit_par()
         par['rdx']['spectrograph'] = 'lbt_mods1r'
+        par['flexure']['spec_method'] = 'boxcar'
 
         # 1D wavelength solution
         par['calibrations']['wavelengths']['sigdetect'] = 5.
@@ -385,6 +386,7 @@ class LBTMODS1BSpectrograph(LBTMODSSpectrograph):
         """
         par = LBTMODSSpectrograph.default_pypeit_par()
         par['rdx']['spectrograph'] = 'lbt_mods1b'
+        par['flexure']['spec_method'] = 'boxcar'
 
         # 1D wavelength solution
         par['calibrations']['wavelengths']['sigdetect'] = 5.
@@ -492,6 +494,7 @@ class LBTMODS2RSpectrograph(LBTMODSSpectrograph):
         """
         par = LBTMODSSpectrograph.default_pypeit_par()
         par['rdx']['spectrograph'] = 'lbt_mods2r'
+        par['flexure']['spec_method'] = 'boxcar'
 
         # 1D wavelength solution
         par['calibrations']['wavelengths']['sigdetect'] = 5.
@@ -636,6 +639,7 @@ class LBTMODS2BSpectrograph(LBTMODSSpectrograph):
         """
         par = LBTMODSSpectrograph.default_pypeit_par()
         par['rdx']['spectrograph'] = 'lbt_mods2b'
+        par['flexure']['spec_method'] = 'boxcar'
 
         # 1D wavelength solution
         par['calibrations']['wavelengths']['sigdetect'] = 5.
