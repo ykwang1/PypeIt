@@ -291,13 +291,30 @@ def poly_val(coeff, x, nrm):
 
 def xidl_arcspec(xidl_file, slit):
     xidl_dict = readsav(xidl_file)
-    if xidl_dict['archive_arc'].ndim == 2:
-        nspec = xidl_dict['archive_arc'].shape[0]
-        npix = xidl_dict['archive_arc'].shape[1]
-    else:
-        npix = xidl_dict['archive_arc'].shape[0]
-    # This is the best one (well-centered)
-    calib = xidl_dict['calib'][slit]
+    try:
+        if xidl_dict['archive_arc'].ndim == 2:
+            nspec = xidl_dict['archive_arc'].shape[0]
+            npix = xidl_dict['archive_arc'].shape[1]
+            spec = xidl_dict['archive_arc'][slit]
+        else:
+            npix = xidl_dict['archive_arc'].shape[0]
+            spec = xidl_dict['archive_arc']
+
+        # This is the best one (well-centered)
+        calib = xidl_dict['calib'][slit]
+    except:
+        ## For LBT MODS reduction
+        if xidl_dict['arc1d'].ndim == 2:
+            nspec = xidl_dict['arc1d'].shape[0]
+            npix = xidl_dict['arc1d'].shape[1]
+            spec = xidl_dict['arc1d'][slit]
+
+        else:
+            npix = xidl_dict['arc1d'].shape[0]
+            spec = xidl_dict['arc1d']
+        # This is the best one (well-centered)
+        calib = xidl_dict['xfit'][slit]
+
     # Generate the wavelengths
     if calib['FUNC'] == b'CHEBY':
         wv_air = cheby_val(calib['FFIT'], np.arange(npix),
@@ -306,10 +323,6 @@ def xidl_arcspec(xidl_file, slit):
         wv_air = poly_val(calib['FFIT'], np.arange(npix), calib['NRM'])
 
     wv_vac = airtovac(wv_air * units.AA)
-    if xidl_dict['archive_arc'].ndim == 2:
-        spec = xidl_dict['archive_arc'][slit]
-    else:
-        spec = xidl_dict['archive_arc']
     # Flip to blue to red?
     if wv_vac[1] < wv_vac[0]:
         wv_vac = wv_vac[::-1]
@@ -794,6 +807,16 @@ def main(flg):
             wfile = os.path.join(reid_path, iroot[ii])
             build_template(wfile, slits[ii], lcut, binspec, outroot[ii], lowredux=False)
 
+    if flg & (2 ** 32):  # MODS 1B
+        binspec = 1
+        reid_path = os.path.join(resource_filename('pypeit', 'data'), 'arc_lines', 'reid_arxiv')
+        outroot = 'lbt_mods1b_blue.fits'
+        slits = [0,1,2,3,4]
+        lcut = []
+        xidl_file = os.path.join(reid_path, 'wave-m1b_HgXeAr_LS.sav')
+        build_template(xidl_file, slits, lcut, binspec, outroot, lowredux=True)
+
+
 # Command line execution
 if __name__ == '__main__':
     flg = 0
@@ -866,7 +889,8 @@ if __name__ == '__main__':
     #flg += 2**30
 
     # LBT MODS
-    flg += 2**31
+    #flg += 2**31
+    flg += 2**32
 
     main(flg)
 
