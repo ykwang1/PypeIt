@@ -172,10 +172,19 @@ class FlatImages(datamodel.DataContainer):
         return d, version_passed, type_passed, parsed_hdus
 
     def shape(self):
+        """
+        Convenience function for flatfield shape
+
+        Returns:
+            tuple: Shape of flat image
+
+        """
         if self.pixelflat_raw is not None:
             return self.pixelflat_raw.shape
         elif self.illumflat_raw is not None:
             return self.illumflat_raw.shape
+        elif self.pixelflat_norm is not None:  # This allows for user-suppled pixelflat (e.g. LRISb)
+            return self.pixelflat_norm.shape
         else:
             msgs.error("Shape of FlatImages could not be determined")
 
@@ -186,6 +195,16 @@ class FlatImages(datamodel.DataContainer):
             return self.pixelflat_raw
 
     def get_bpmflats(self, frametype='pixel'):
+        """
+        Grab bpm image for specified flat flavor
+
+        Args:
+            frametype (str, optional):
+
+        Returns:
+            `numpy.ndarray`_: BPM image
+
+        """
         # Check if both BPMs are none
         if self.pixelflat_bpm is None and self.illumflat_bpm is None:
             msgs.warn("FlatImages contains no BPM - trying to generate one")
@@ -243,6 +262,7 @@ class FlatImages(datamodel.DataContainer):
 
     def fit2illumflat(self, slits, frametype='illum', initial=False, flexure_shift=None):
         """
+        Generate an image from fits to the flat
 
         Args:
             slits (:class:`pypeit.slittrace.SlitTraceSet`):
@@ -253,6 +273,7 @@ class FlatImages(datamodel.DataContainer):
             flexure_shift (float, optional):
 
         Returns:
+            `numpy.ndarray`_: Flat image from the fit
 
         """
         illumflat = np.ones(self.shape())
@@ -283,8 +304,9 @@ class FlatImages(datamodel.DataContainer):
         Args:
             frametype (str):
                 Which flats should be displayed? Must be one of 'illum', 'pixel', or 'all' (default)
-            slits:
-            wcs_match:
+            slits (:class:`pypeit.slittrace.SlitTraceSet`, optional):
+                If provided, try to generate the illumflat image
+            wcs_match (bool, optional):
 
         Returns:
 
@@ -302,7 +324,8 @@ class FlatImages(datamodel.DataContainer):
                 msgs.warn('Could not load slits to show with flat-field images. Did you provide the master info??')
         if slits is not None:
             slits.mask_flats(self)
-            illumflat_pixel = self.fit2illumflat(slits, frametype='pixel')
+            if self.pixelflat_spat_bsplines is not None:
+                illumflat_pixel = self.fit2illumflat(slits, frametype='pixel')
             if self.illumflat_spat_bsplines is not None:
                 illumflat_illum = self.fit2illumflat(slits, frametype='illum')
         # Decide which frames should be displayed
@@ -1482,9 +1505,9 @@ def merge(init_cls, merge_cls):
 
     Parameters
     ----------
-    init_cls : :class:`pypeit.flatfield.FlatImages`
+    init_cls : :class:`pypeit.flatfield.FlatImages` or None
         Initial class (the elements of this class will be considered the default)
-    merge_cls : :class:`pypeit.flatfield.FlatImages`
+    merge_cls : :class:`pypeit.flatfield.FlatImages` or None
         The non-zero elements will be merged into init_cls.
 
     Returns
@@ -1494,6 +1517,9 @@ def merge(init_cls, merge_cls):
     # Check the class to be merged in is not None
     if merge_cls is None:
         return init_cls
+    # Other way now
+    if init_cls is None:
+        return merge_cls
     # Initialise variables
     # extract all elements that are prefixed with 'pixelflat_' or 'illumflat_'
     keys = [a for a in list(init_cls.__dict__.keys()) if '_' in a and a.split('_')[0] in ['illumflat', 'pixelflat']]

@@ -560,20 +560,23 @@ class Calibrations(object):
             # the attributes prefixed with 'pixelflat_' will all be None.
             flatimages = illumflatImages
 
+        # Load user-supplied images
+        #  NOTE:  This is the *final* images, not just a stack
+        if self.par['flatfield']['pixelflat_file'] is not None:
+            # Load
+            msgs.info('Using user-defined file: {0}'.format('pixelflat_file'))
+            with fits.open(self.par['flatfield']['pixelflat_file']) as hdu:
+                pixelflatImages = flatfield.FlatImages(pixelflat_norm=hdu[self.det].data,
+                                                       PYP_SPEC=self.spectrograph.spectrograph,
+                                                       spat_id=self.slits.spat_id)
+                flatimages = flatfield.merge(flatimages, pixelflatImages)
+
         # Save flat images
         if flatimages is not None:
             flatimages.to_master_file(masterframe_filename)
             # Save slits too, in case they were tweaked
             self.slits.to_master_file()
 
-        # 3) Load user-supplied images
-        #  NOTE:  This is the *final* images, not just a stack
-        #  And it will over-ride what is generated below (if generated)
-        if self.par['flatfield']['pixelflat_file'] is not None:
-            # Load
-            msgs.info('Using user-defined file: {0}'.format('pixelflat_file'))
-            with fits.open(self.par['flatfield']['pixelflat_file']) as hdu:
-                flatimages = flatfield.merge(flatimages, flatfield.FlatImages(pixelflat_norm=hdu[self.det].data))
 
         self.flatimages = flatimages
         # Return
