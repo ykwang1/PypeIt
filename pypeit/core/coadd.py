@@ -559,17 +559,17 @@ def solve_poly_ratio(wave, flux, ivar, flux_ref, ivar_ref, norder, mask = None, 
     if 'poly' in model:
         guess = np.append(ratio, np.zeros(norder-1))
         scale_fun = lambda x: x
-        err_scale_fun = lambda flux, ivar: 1/np.sqrt(ivar)
+        err_scale_fun = lambda flux, ivar: np.sqrt(ivar)
         mask_fun = lambda x: np.ones_like(x)
     elif 'square' in model:
         guess = np.append(np.sqrt(ratio), np.zeros(norder-1))
         scale_fun = np.sqrt
-        err_scale_fun = lambda flux, ivar: 1/(2 * np.sqrt(flux * ivar))
+        err_scale_fun = lambda flux, ivar: (2 * np.sqrt(flux * ivar))
         mask_fun = lambda x: x >= 0
     elif 'exp' in model:
         guess = np.append(np.log(ratio), np.zeros(norder-1))
         scale_fun = np.log
-        err_scale_fun = lambda flux, ivar: 1/(flux * np.sqrt(ivar))
+        err_scale_fun = lambda flux, ivar: (flux * np.sqrt(ivar))
         mask_fun = lambda x: x > 0
     else:
         msgs.error('Unrecognized model type')
@@ -586,7 +586,7 @@ def solve_poly_ratio(wave, flux, ivar, flux_ref, ivar_ref, norder, mask = None, 
             # we need scale_mask to mask negative points in the polyfit
             scale_mask = mask_fun(flux_ref_med) & (ivar_ref_med > 0)
 
-            fitter = fitting.PypeItFit(xval=wave, yval=scale_fun(flux_ref_med), order=np.array([1]),
+            fitter = fitting.PypeItFit(xval=wave, yval=scale_fun(flux_ref_med/flux_med), order=np.array([1]),
                 weights=err_scale_fun(flux_ref_med, ivar_ref_med), gpm=(scale_mask & mask).astype('int'),
                 func=func, minx=wave_min, maxx=wave_max)
 
