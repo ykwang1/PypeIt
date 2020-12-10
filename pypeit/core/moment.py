@@ -53,6 +53,13 @@ def moment1d(flux, col, width, ivar=None, bpm=None, fwgt=None, row=None, weighti
         \sigma = \sqrt{\mu_2} \\
         \epsilon_{\sigma} = \frac{\epsilon_{\mu_2}}{2 \sigma}.
 
+    .. warning::
+
+        Error calculations provided by :func:`moment1d` are based on the
+        nominal error-propagation formula, which assumes small errors that
+        follow a Gaussian PDF. For more correct errors, we recommend running
+        :func:`moment1d` within a Monte Carlo framework.
+
     The method uses `numpy.ma.MaskedArray` objects to keep track of
     math errors, such as divisions by 0. The returned boolean array
     indicates when these errors occurred, and the method replaces
@@ -99,16 +106,14 @@ def moment1d(flux, col, width, ivar=None, bpm=None, fwgt=None, row=None, weighti
     .. note::
 
         - This is an entirely general function, as reflected by the
-          nomenclature used in the call. As used within PypeIt, the
-          PypeIt image orientation convention means that moments are
-          always taken along the spatial direction; i.e., `col` is
-          the spatial coordinate and `row` is the spectral
-          coordinate.
+          nomenclature used in the call. As used within ``PypeIt``, the
+          ``PypeIt`` image orientation convention means that moments are
+          always taken along the spatial direction; i.e., ``col`` is the
+          spatial coordinate and ``row`` is the spectral coordinate.
 
-        - This function is a generalization of and builds on the
-          heritage of functions in idlspec2d, specifically
-          trace_fweight, trace_gweight, extrace_asymbox2,
-          extract_boxcar.
+        - This function is a generalization of and builds on the heritage of
+          functions in idlspec2d, specifically trace_fweight, trace_gweight,
+          extrace_asymbox2, extract_boxcar.
 
     .. warning::
 

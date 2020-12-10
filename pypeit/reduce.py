@@ -30,7 +30,7 @@ from linetools.spectra import xspectrum1d
 from IPython import embed
 
 
-class Reduce(object):
+class Reduce:
     """
     This class will organize and run actions related to
     finding objects, sky subtraction, and extraction for

@@ -21,13 +21,9 @@ class FrameTypeBitMask(BitMask):
     standard, or trace.
     """
     def __init__(self):
-        # TODO: This needs to be an OrderedDict for now to ensure that
-        # the bits assigned to each key is always the same. As of python
-        # 3.7, normal dict types are guaranteed to preserve insertion
-        # order as part of its data model. When/if we require python
-        # 3.7, we can remove this (and other) OrderedDict usage in favor
-        # of just a normal dict.
-        frame_types = OrderedDict([
+        # NOTE: The keyword order must be maintained to ensure that the bits
+        # assigned to each key is always the same.
+        frame_types = dict([
                        ('align', 'Trace constant spatial positions along the slit'),
                          ('arc', 'Arc lamp observation used for wavelength calibration'),
                         ('bias', 'Bias readout for detector bias subtraction'),
@@ -38,7 +34,8 @@ class FrameTypeBitMask(BitMask):
                      ('science', 'On-sky observation of a primary target'),
                     ('standard', 'On-sky observation of a flux calibrator'),
                        ('trace', 'High-count exposure used to trace slit positions'),
-                        ('tilt', 'Exposure used to trace the tilt in the wavelength solution')
+                        ('tilt', 'Exposure used to trace the tilt in the wavelength solution'),
+                         ('sky', 'A sky-only exposure.')
                                   ])
         super(FrameTypeBitMask, self).__init__(list(frame_types.keys()),
                                                descr=list(frame_types.values()))

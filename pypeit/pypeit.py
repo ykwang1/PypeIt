@@ -99,17 +99,18 @@ class PypeIt(object):
 
         config_specific_file = None
         for idx, row in enumerate(usrdata):
-            if ('science' in row['frametype']) or ('standard' in row['frametype']):
+            if np.any(['science', 'standard', 'sky'], row['frametype'].split(',')):
                 config_specific_file = data_files[idx]
         # search for arcs, trace if no scistd was there
         if config_specific_file is None:
             for idx, row in enumerate(usrdata):
-                if ('arc' in row['frametype']) or ('trace' in row['frametype']):
+                if np.any(['arc', 'trace'], row['frametype'].split(',')):
                     config_specific_file = data_files[idx]
         if config_specific_file is not None:
-            msgs.info(
-                'Setting configuration-specific parameters using {0}'.format(os.path.split(config_specific_file)[1]))
-        spectrograph_cfg_lines = self.spectrograph.config_specific_par(config_specific_file).to_config()
+            msgs.info('Setting configuration-specific parameters using {0}'.format(
+                      os.path.split(config_specific_file)[1]))
+        spectrograph_cfg_lines \
+                = self.spectrograph.config_specific_par(config_specific_file).to_config()
 
         #   - Build the full set, merging with any user-provided
         #     parameters
@@ -318,6 +319,9 @@ class PypeIt(object):
 
         # Find the science frames
         is_science = self.fitstbl.find_frames('science')
+
+        # Find the sky frames
+        is_sky = self.fitstbl.find_frames('sky')
 
         # Frame indices
         frame_indx = np.arange(len(self.fitstbl))
