@@ -16,6 +16,7 @@ in-development; however, the development timescale is undefined.
 For instructions on how to add a new spectrograph see:
 :doc:`new_spectrograph`.
 
+
 .. include:: include/spectrographs_table.rst
 
 Instrument-specific Details
@@ -34,4 +35,5 @@ instrument-specific details for running ``PypeIt``.
    keck_kcwi
    lris
    mage
+   shane_kast
    xshooter
