@@ -475,3 +475,33 @@ class P200DBSPRedSpectrograph(P200DBSPSpectrograph):
         par['sensfunc']['UVIS']['resolution'] = resolving_power.decompose().value
 
         return par
+
+    def bpm(self, filename, det, shape=None, msbias=None):
+        """
+        Override parent bpm function with BPM specific to P200 DBSPr.
+
+        .. todo::
+            Allow for binning changes.
+
+        Parameters
+        ----------
+        det : int, REQUIRED
+        msbias : numpy.ndarray, required if the user wishes to generate a BPM based on a master bias
+
+        Returns
+        -------
+        bpix : ndarray
+          0 = ok; 1 = Mask
+
+        """
+        # 467 - 722
+        msgs.info("Custom bad pixel mask for DBSPr")
+        bpm_img = self.empty_bpm(filename, det, shape=shape)
+
+        # Fill in bad pixels if a master bias frame is provided
+        if msbias is not None:
+            return self.bpm_frombias(msbias, det, bpm_img)
+
+        bpm_img[466:723, :] = 1
+
+        return bpm_img
