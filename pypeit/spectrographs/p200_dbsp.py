@@ -495,6 +495,7 @@ class P200DBSPRedSpectrograph(P200DBSPSpectrograph):
 
         """
         # 467 - 722
+        # grew BPM 3/1/2021 MSR
         msgs.info("Custom bad pixel mask for DBSPr")
         bpm_img = self.empty_bpm(filename, det, shape=shape)
 
@@ -502,6 +503,6 @@ class P200DBSPRedSpectrograph(P200DBSPSpectrograph):
         if msbias is not None:
             return self.bpm_frombias(msbias, det, bpm_img)
 
-        bpm_img[466:723, :] = 1
+        bpm_img[465:723, :] = 1
 
         return bpm_img
