@@ -401,8 +401,8 @@ class P200DBSPRedSpectrograph(P200DBSPSpectrograph):
         par['scienceframe']['process']['use_overscan'] = True
         par['scienceframe']['process']['sigclip'] = 4.0 # Tweaked downward from 4.5. 
         par['scienceframe']['process']['objlim'] = 1.5 # Tweaked downward from 3.0. Same value as Keck KCWI and DEIMOS
-        # Make a bad pixel mask
-        # par['calibrations']['bpm_usebias'] = True
+        # Use custom BPM
+        # keep par['calibrations']['bpm_usebias'] at its False default
         # Set pixel flat combination method
         par['calibrations']['pixelflatframe']['process']['combine'] = 'median'
         par['calibrations']['pixelflatframe']['process']['sig_lohi'] = [10.,10.]
@@ -503,6 +503,6 @@ class P200DBSPRedSpectrograph(P200DBSPSpectrograph):
         if msbias is not None:
             return self.bpm_frombias(msbias, det, bpm_img)
 
-        bpm_img[460:723, :] = 1
+        bpm_img[464:723, :] = 1
 
         return bpm_img
