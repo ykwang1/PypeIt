@@ -503,6 +503,6 @@ class P200DBSPRedSpectrograph(P200DBSPSpectrograph):
         if msbias is not None:
             return self.bpm_frombias(msbias, det, bpm_img)
 
-        bpm_img[465:723, :] = 1
+        bpm_img[464:723, :] = 1
 
         return bpm_img
