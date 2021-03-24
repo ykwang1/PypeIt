@@ -33,12 +33,13 @@ def gemini_gmos_r400_hama(overwrite=False):  # GMOS R400 Hamamatsu
     wfile6 = os.path.join(templates.template_path, 'GMOS', 
                           'R400', 'MasterWaveCalib_A_06_aa.json')
     #
-    templates.build_template([wfile0, wfile1, 
-                              wfile7, wfile2, wfile3, wfile4, wfile6], 
-                             slits, lcut, binspec,
-                   outroot, lowredux=False, ifiles=ifiles, chk=True,
-                   normalize=False, subtract_conti=True, 
-                   overwrite=overwrite, shift_wave=True)
+    templates.build_template(
+        [wfile0, wfile1, wfile7, wfile2, wfile3, wfile4, wfile6], 
+        slits, lcut, binspec,
+        outroot, lowredux=False, ifiles=ifiles, chk=True,
+        normalize=False,  # THIS IS TRICKY.  False suppresses the blue but that might be best
+        subtract_conti=True, 
+        overwrite=overwrite, shift_wave=True)
 
 # ##############################
 def gemini_gmos_r400_e2v(overwrite=False):  # GMOS R400 E2V
@@ -115,7 +116,7 @@ def gemini_gmos_r831_ham(overwrite=False):
 
 
 if __name__ == '__main__':
-    gemini_gmos_r400_hama(overwrite=True)
+    gemini_gmos_r400_hama()#overwrite=True)
     #gemini_gmos_r400_e2v(overwrite=True)
     #gemini_gmos_b600_ham(overwrite=True)
     #gemini_gmos_r831_ham(overwrite=False)
