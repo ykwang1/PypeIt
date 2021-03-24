@@ -13,7 +13,7 @@ def gemini_gmos_r400_hama(overwrite=False):  # GMOS R400 Hamamatsu
     #
     ifiles = [0, 1, 2, 3, 4, 5, 6]
     slits = [1, 0, 1, 0, 3, 0, 0]  # Be careful with the order..
-    lcut = [5270., 5990., 6635., 7580., 8170., 9000.]
+    lcut = [5270., 5980., 7400., 7580., 8170., 9000.]
     wfile0 = os.path.join(templates.template_path, 'GMOS', 
                           'R400', 'wvcalib_r400_470.fits')
     wfile1 = os.path.join(templates.template_path, 'GMOS', 'R400', 
@@ -37,8 +37,8 @@ def gemini_gmos_r400_hama(overwrite=False):  # GMOS R400 Hamamatsu
                               wfile7, wfile2, wfile3, wfile4, wfile6], 
                              slits, lcut, binspec,
                    outroot, lowredux=False, ifiles=ifiles, chk=True,
-                   normalize=True, subtract_conti=True, overwrite=overwrite,
-                             shift_wave=True)
+                   normalize=False, subtract_conti=True, 
+                   overwrite=overwrite, shift_wave=True)
 
 # ##############################
 def gemini_gmos_r400_e2v(overwrite=False):  # GMOS R400 E2V
