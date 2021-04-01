@@ -371,6 +371,8 @@ class Reduce(object):
                               show=self.reduce_show & (not self.std_redux),
                               manual_extract_dict=self.par['reduce']['extraction']['manual'].dict_for_objfind())
 
+        from pypeit.display import display
+        embed(header='374 of reduce')
         # Check if the user wants to overwrite the skymask with a pre-defined sky regions file
         skymask_init, usersky = self.load_skyregions(skymask_init)
 
@@ -998,6 +1000,9 @@ class MultiSlitReduce(Reduce):
         for slit_idx in gdslits:
             slit_spat = self.slits.spat_id[slit_idx]
             qa_title ="Finding objects on slit # {:d}".format(slit_spat)
+            if slit_spat != 1324:
+                continue
+            debug=True
             msgs.info(qa_title)
             thismask = self.slitmask == slit_spat
             inmask = (self.sciImg.fullmask == 0) & thismask

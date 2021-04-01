@@ -1223,6 +1223,7 @@ def objfind(image, thismask, slit_left, slit_righ, inmask=None, fwhm=3.0, maxdev
         show_trace = True
         show_cont = True
 
+
     if specobj_dict is None:
         specobj_dict = dict(SLITID=999, DET=1, OBJTYPE='unknown', PYPELINE='MultiSlit')
 
@@ -1272,7 +1273,7 @@ def objfind(image, thismask, slit_left, slit_righ, inmask=None, fwhm=3.0, maxdev
     flux_spec = moment1d(thisimg, (left_asym+righ_asym)/2, (righ_asym-left_asym),
                          fwgt=totmask.astype(float))[0]
     mask_spec = moment1d(totmask, (left_asym+righ_asym)/2, (righ_asym-left_asym),
-                         fwgt=totmask.astype(float))[0] < 0.3
+                         fwgt=totmask.astype(float))[0] < 0.8
     if find_min_max is not None:
         find_spec_min,find_spec_max = int(find_min_max[0]), int(find_min_max[1])
         flux_spec = flux_spec[find_spec_min:find_spec_max,:]
@@ -1295,6 +1296,9 @@ def objfind(image, thismask, slit_left, slit_righ, inmask=None, fwhm=3.0, maxdev
         fluxconv0, inmask=smash_mask, fwhm=fwhm,cont_frac_fwhm=2.0, sigthresh=2.0, sigrej=2.0, cont_samp=cont_samp,
         npoly=(0 if (nsamp/fwhm < 20.0) else npoly_cont), cont_mask_neg=ir_redux, debug=show_cont,
         qa_title='Smash Image Background, 1st iteration: Slit# {:d}'.format(specobj_dict['SLITID']))
+
+    if debug_all:
+        embed(header='1301 of extract')
 
     # Second iteration
     flux_mean_med = np.median(flux_mean[cont_mask0])
@@ -1448,6 +1452,9 @@ def objfind(image, thismask, slit_left, slit_righ, inmask=None, fwhm=3.0, maxdev
         plt.title(qa_title + ': Slit# {:d}'.format(specobj_dict['SLITID']))
         plt.show()
         viewer, ch = display.show_image(image*(thismask*inmask))
+    
+    if debug_all:
+        embed(header='1453 of extract')
 
     # Now loop over all the regular apertures and assign preliminary traces to them.
     for iobj in range(nobj_reg):
