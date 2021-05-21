@@ -8,7 +8,7 @@ from astropy.table import Table
 from pypeit import msgs
 from pypeit import io
 from pypeit.par.util import make_pypeit_file
-
+from IPython import embed
 
 class SmartFormatter(argparse.HelpFormatter):
 
@@ -99,6 +99,7 @@ def main(args):
         cfg_lines += ['# This file includes all extracted objects. You need to figure out which object you want to \n'+\
                       '# coadd before running pypeit_coadd_1dspec!!!']
         spec1d_info = []
+        # TODO: Should we just be reading in the spec1d file instead?
         for ii in range(len(spec1dfiles)):
             meta_tbl = Table.read(os.path.join(args.sci_path, spec1dfiles[ii]).replace('.fits', '.txt'),
                                   format='ascii.fixed_width')

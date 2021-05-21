@@ -20,6 +20,7 @@ from pypeit.core import parse
 from pypeit.core import framematch
 from pypeit.par import pypeitpar
 from pypeit.spectrographs import spectrograph
+from pypeit.images import detector_container
 
 
 class KECKHIRESSpectrograph(spectrograph.Spectrograph):
@@ -231,6 +232,44 @@ class KECKHIRESRSpectrograph(KECKHIRESSpectrograph):
     """
     name = 'keck_hires_red'
     camera = 'HIRES_R'
+
+
+    def get_detector_par(self, hdu, det):
+        """
+        Return metadata for the selected detector.
+
+        Args:
+            hdu (`astropy.io.fits.HDUList`_):
+                The open fits file with the raw image of interest.
+            det (:obj:`int`):
+                1-indexed detector number.
+
+        Returns:
+            :class:`~pypeit.images.detector_container.DetectorContainer`:
+            Object with the detector metadata.
+        """
+
+        # TODO: THESE ARE CURRENTLY BOGUS VALUES FROM VLT-XSHOOTER
+        # Detector 1
+        detector_dict = dict(
+            binning         = '1,1',
+            det             = 1,
+            dataext         = 0,
+            specaxis        = 1,
+            specflip        = False,
+            spatflip        = False,
+            platescale      = 0.197, # average between order 11 & 30, see manual
+            darkcurr        = 0.0,
+            saturation      = 2.0e5, # I think saturation may never be a problem here since there are many DITs
+            nonlinear       = 0.86,
+            mincounts       = -1e10,
+            numamplifiers   = 1,
+            gain            = np.atleast_1d(2.12), #
+            ronoise         = np.atleast_1d(8.0), # ?? more precise value? #TODO the read noise is exposure time  dependent and should be grabbed from header
+            datasec         = np.atleast_1d('[4:2044,4:]'), # These are all unbinned pixels
+            )
+        return detector_container.DetectorContainer(**detector_dict)
+
 
     @classmethod
     def default_pypeit_par(cls):
