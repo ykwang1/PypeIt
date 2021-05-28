@@ -6,7 +6,7 @@ files.
 .. include:: ../include/links.rst
 """
 import glob
-
+import os
 from IPython import embed
 
 import numpy as np
@@ -313,6 +313,13 @@ class KECKHIRESRSpectrograph(KECKHIRESSpectrograph):
         par['scienceframe']['process']['satpix'] ='nothing'
         par['calibrations']['standardframe']['exprng'] = [None, 600]
         par['scienceframe']['exprng'] = [600, None]
+
+        # Sensitivity function parameters
+        par['sensfunc']['algorithm'] = 'IR'
+        par['sensfunc']['polyorder'] = 8
+        par['sensfunc']['IR']['telgridfile'] \
+                = os.path.join(par['sensfunc']['IR'].default_root,
+                               'TelFit_Paranal_VIS_4900_11100_R25000.fits')
 
         return par
 

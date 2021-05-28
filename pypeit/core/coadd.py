@@ -648,7 +648,7 @@ def interp_oned(wave_new, wave_old, flux_old, ivar_old, mask_old, sensfunc=False
         ivar_interp = ivar_old[wave_mask]
 
     flux_new = scipy.interpolate.interp1d(wave_old[wave_mask], flux_interp, kind='cubic',
-                                    bounds_error=False, fill_value=np.nan)(wave_new)
+                                          bounds_error=False, fill_value=np.nan)(wave_new)
     ivar_new = scipy.interpolate.interp1d(wave_old[wave_mask], ivar_interp, kind='cubic',
                                     bounds_error=False, fill_value=np.nan)(wave_new)
     mask_new_tmp = scipy.interpolate.interp1d(wave_old[wave_mask], masks_float[wave_mask], kind='cubic',
