@@ -497,7 +497,7 @@ class FlatFieldPar(ParSet):
                  spec_samp_coarse=None, spat_samp=None, tweak_slits=None, tweak_slits_thresh=None,
                  tweak_slits_maxfrac=None, rej_sticky=None, slit_trim=None, slit_illum_pad=None,
                  illum_iter=None, illum_rej=None, twod_fit_npoly=None, saturated_slits=None,
-                 slit_illum_relative=None):
+                 slit_illum_relative=None, slit_illum_ref_idx=None):
 
         # Grab the parameter names and values from the function
         # arguments
@@ -614,6 +614,12 @@ class FlatFieldPar(ParSet):
                                    'extracted from the slit; \'continue\' - ignore the ' \
                                    'flat-field correction, but continue with the reduction.'
 
+        defaults['slit_illum_ref_idx'] = 0
+        dtypes['slit_illum_ref_idx'] = int
+        descr['slit_illum_ref_idx'] = 'The index of a reference slit (0-indexed) used for estimating ' \
+                                      'the relative spectral sensitivity (or the relative blaze). This' \
+                                      'parameter is only used if ``slit_illum_relative = True``.'
+
         # Instantiate the parameter set
         super(FlatFieldPar, self).__init__(list(pars.keys()),
                                            values=list(pars.values()),
@@ -631,7 +637,7 @@ class FlatFieldPar(ParSet):
         parkeys = ['method', 'pixelflat_file', 'spec_samp_fine', 'spec_samp_coarse',
                    'spat_samp', 'tweak_slits', 'tweak_slits_thresh', 'tweak_slits_maxfrac',
                    'rej_sticky', 'slit_trim', 'slit_illum_pad', 'slit_illum_relative',
-                   'illum_iter', 'illum_rej', 'twod_fit_npoly', 'saturated_slits']
+                   'illum_iter', 'illum_rej', 'twod_fit_npoly', 'saturated_slits', 'slit_illum_ref_idx']
 
         badkeys = np.array([pk not in parkeys for pk in k])
         if np.any(badkeys):
@@ -692,7 +698,8 @@ class FlexurePar(ParSet):
     For a table with the current keywords, defaults, and descriptions,
     see :ref:`pypeitpar`.
     """
-    def __init__(self, spec_method=None, spec_maxshift=None, spectrum=None):
+    def __init__(self, spec_method=None, spec_maxshift=None, spectrum=None,
+                 multi_min_SN=None):
 
         # Grab the parameter names and values from the function
         # arguments
@@ -725,6 +732,11 @@ class FlexurePar(ParSet):
         dtypes['spectrum'] = str
         descr['spectrum'] = 'Archive sky spectrum to be used for the flexure correction.'
 
+        # The following are all for MultiDet flexure
+        defaults['multi_min_SN'] = 1
+        dtypes['multi_min_SN'] = [int, float]
+        descr['multi_min_SN'] = 'Minimum S/N for analyzing sky spectrum for flexure'
+
         # Instantiate the parameter set
         super(FlexurePar, self).__init__(list(pars.keys()),
                                          values=list(pars.values()),
@@ -736,8 +748,10 @@ class FlexurePar(ParSet):
 
     @classmethod
     def from_dict(cls, cfg):
+
         k = np.array([*cfg.keys()])
-        parkeys = ['spec_method', 'spec_maxshift', 'spectrum']
+        parkeys = ['spec_method', 'spec_maxshift', 'spectrum',
+                   'multi_min_SN']
 #                   'spat_frametypes']
 
         badkeys = np.array([pk not in parkeys for pk in k])
@@ -4614,6 +4628,7 @@ class TelescopePar(ParSet):
     def eff_aperture(self):
         return np.pi*self['diameter']**2/4.0 if self['eff_aperture'] is None else self['eff_aperture']
 
+
 class Collate1DPar(ParSet):
     """
     A parameter set holding the arguments for collating, coadding, and archving 1d spectra.
@@ -4700,4 +4715,3 @@ class Collate1DPar(ParSet):
         Check the parameters are valid for the provided method.
         """
         pass
-

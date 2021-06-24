@@ -11,6 +11,7 @@ import pickle
 import warnings
 import itertools
 from glob import glob
+from typing import List
 
 from IPython import embed
 
@@ -28,6 +29,29 @@ from astropy import stats
 
 from pypeit.core import pydl
 from pypeit import msgs
+
+
+def all_subclasses(cls):
+    """
+    Collect all the subclasses of the provided class.
+
+    The search follows the inheritance to the highest-level class.  Intermediate
+    base classes are included in the returned set, but not the base class itself.
+
+    Thanks to:
+    https://stackoverflow.com/questions/3862310/how-to-find-all-the-subclasses-of-a-class-given-its-name
+
+    Args:
+        cls (object):
+            The base class
+
+    Returns:
+        :obj:`set`: The unique set of derived classes, including any
+        intermediate base classes in the inheritance thread.
+    """
+    return set(cls.__subclasses__()).union(
+            [s for c in cls.__subclasses__() for s in all_subclasses(c)])
+
 
 def embed_header():
     """
@@ -49,6 +73,7 @@ def embed_header():
     """
     info = inspect.getframeinfo(inspect.stack()[1][0])
     return '{0} {1} {2}'.format(info.lineno, info.function, os.path.split(info.filename)[1])
+
 
 # Pulled from `pypeit.par.ParSet`. Maybe move these to
 # doc/scripts/util.py?
@@ -788,12 +813,7 @@ def polyval2d(x, y, m):
     return z
 
 
-
-
-
-
-
-
+'''
 def robust_polyfit(xarray, yarray, order, weights=None, maxone=True, sigma=3.0,
                    function="polynomial", initialmask=None, forceimask=False,
                    minx=None, maxx=None, guesses=None, bspline_par=None, verbose=True):
@@ -867,6 +887,7 @@ def robust_polyfit(xarray, yarray, order, weights=None, maxone=True, sigma=3.0,
         wfit = None
     ct = func_fit(xfit, yfit, function, order, w=wfit, minx=minx, maxx=maxx, bspline_par=bspline_par)
     return mask, ct
+'''
 
 
 def subsample(frame):
@@ -1022,6 +1043,7 @@ def load_pickle(fname):
     msgs.info('Loading file: {0:s}'.format(fname))
     with open(fname, 'rb') as f:
         return pickle.load(f)
+
 
 ##
 ##This code was originally published by the following individuals for use with
@@ -1294,3 +1316,31 @@ def find_single_file(file_pattern):
     else:
         msgs.warn(f'Found multiple files matching {file_pattern}; using the first one.')
         return files[0]
+
+def DFS(v: int, visited: List[bool], group: List[int], adj: np.ndarray):
+    """
+    Depth-First Search of graph given by matrix `adj` starting from `v`.
+    Updates `visited` and `group`.
+
+    Args:
+        v (int): initial vertex
+        visited (List[bool]): List keeping track of which vertices have been
+            visited at any point in traversing the graph. `visited[i]` is True
+            iff vertix `i` has been visited before.
+        group (List[int]): List keeping track of which vertices have been
+            visited in THIS CALL of DFS. After DFS returns, `group` contains
+            all members of the connected component containing v. `i in group`
+            is True iff vertex `i` has been visited in THIS CALL of DFS.
+        adj (np.ndarray): Adjacency matrix description of the graph. `adj[i,j]`
+            is True iff there is a vertex between `i` and `j`.
+    """
+    stack = []
+    stack.append(v)
+    while stack:
+        u = stack.pop()
+        if not visited[u]:
+            visited[u] = True
+            group.append(u)
+            neighbors = [i for i in range(len(adj[u])) if adj[u,i]]
+            for neighbor in neighbors:
+                stack.append(neighbor)
