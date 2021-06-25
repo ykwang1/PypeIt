@@ -29,15 +29,15 @@ from pypeit.history import History
 class CoAdd1D:
 
     @classmethod
-    def get_instance(cls, spec1dfiles, objids, spectrograph=None, par=None, sensfile=None, debug=False, show=False):
+    def get_instance(cls, spec1dfiles, objids, spectrograph=None, par=None, sensfiles=None, debug=False, show=False):
         """
         Superclass factory method which generates the subclass instance. See __init__ docs for arguments.
         """
         pypeline = fits.getheader(spec1dfiles[0])['PYPELINE'] + 'CoAdd1D'
         return next(c for c in cls.__subclasses__() if c.__name__ == pypeline)(
-            spec1dfiles, objids, spectrograph=spectrograph, par=par, sensfile=sensfile, debug=debug, show=show)
+            spec1dfiles, objids, spectrograph=spectrograph, par=par, sensfiles=sensfiles, debug=debug, show=show)
 
-    def __init__(self, spec1dfiles, objids, spectrograph=None, par=None, sensfile=None, debug=False, show=False):
+    def __init__(self, spec1dfiles, objids, spectrograph=None, par=None, sensfiles=None, debug=False, show=False):
         """
 
         Args:
@@ -48,7 +48,7 @@ class CoAdd1D:
             spectrograph (:class:`pypeit.spectrographs.spectrograph.Spectrograph`, optional):
             par (:class:`pypeit.par.pypeitpar.Coadd1DPar`, optional):
                Pypeit parameter set object for Coadd1D
-            sensfile (str, optional):
+            sensfiles (str, optional):
                File holding the sensitivity function. This is required for echelle coadds only.
             debug (bool, optional)
                Debug. Default = False
@@ -70,7 +70,7 @@ class CoAdd1D:
         else:
             self.par = par
         #
-        self.sensfile = sensfile
+        self.sensfile = sensfiles
         self.debug = debug
         self.show = show
         self.nexp = len(self.spec1dfiles) # Number of exposures
@@ -107,6 +107,8 @@ class CoAdd1D:
                 msgs.error("No matching objects for {:s}.  Odds are you input the wrong OBJID".format(self.objids[iexp]))
             wave_iexp, flux_iexp, ivar_iexp, gpm_iexp, meta_spec, header = \
                     sobjs[indx].unpack_object(ret_flam=self.par['flux_value'], extract_type=self.par['ex_value'])
+
+            embed()
             # Allocate arrays on first iteration
             if iexp == 0:
                 waves = np.zeros(wave_iexp.shape + (self.nexp,))
@@ -176,11 +178,11 @@ class MultiSlitCoAdd1D(CoAdd1D):
     Child of CoAdd1d for Multislit and Longslit reductions
     """
 
-    def __init__(self, spec1dfiles, objids, spectrograph=None, par=None, sensfile=None, debug=False, show=False):
+    def __init__(self, spec1dfiles, objids, spectrograph=None, par=None, sensfiles=None, debug=False, show=False):
         """
         See `CoAdd1D` doc string
         """
-        super().__init__(spec1dfiles, objids, spectrograph=spectrograph, par = par, sensfile = sensfile,
+        super().__init__(spec1dfiles, objids, spectrograph=spectrograph, par = par, sensfiles = sensfiles,
                          debug = debug, show = show)
 
     def coadd(self):
@@ -211,12 +213,12 @@ class EchelleCoAdd1D(CoAdd1D):
     Child of CoAdd1d for Echelle reductions
     """
 
-    def __init__(self, spec1dfiles, objids, spectrograph=None, par=None, sensfile=None, debug=False, show=False):
+    def __init__(self, spec1dfiles, objids, spectrograph=None, par=None, sensfiles=None, debug=False, show=False):
         """
         See `CoAdd1D` doc string
 
         """
-        super().__init__(spec1dfiles, objids, spectrograph=spectrograph, par = par, sensfile = sensfile,
+        super().__init__(spec1dfiles, objids, spectrograph=spectrograph, par = par, sensfiles = sensfiles,
                          debug = debug, show = show)
 
     def coadd(self):
@@ -228,7 +230,8 @@ class EchelleCoAdd1D(CoAdd1D):
               - wave, flux, ivar, gpm
 
         """
-        weights_sens = sensfunc.SensFunc.sensfunc_weights(self.sensfile, self.waves,
+        embed()
+        weights_sens = sensfunc.SensFunc.sensfunc_weights(self.sensfiles, self.waves,
                                                           debug=self.debug)
         (wave_coadd, flux_coadd, ivar_coadd, gpm_coadd), order_stacks \
                 = coadd.ech_combspec(self.waves, self.fluxes, self.ivars, self.gpms, weights_sens,

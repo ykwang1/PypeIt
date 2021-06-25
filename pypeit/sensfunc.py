@@ -642,13 +642,14 @@ class SensFunc(datamodel.DataContainer):
         fig.savefig(self.thrufile)
 
     @classmethod
-    def sensfunc_weights(cls, sensfile, waves, debug=False, extrap_sens=True):
+    def sensfunc_weights(cls, sensfiles, waves, debug=False, extrap_sens=True):
         """
-        Get the weights based on the sensfunc
+        Get the weights based on the sensfunc files
 
         Args:
-            sensfile (str):
-                the name of your fits format sensfile
+            sensfiles (str or list):
+                the name of your fits format sensfile. This should have the same length as the number of
+                im
             waves (ndarray): (nspec, norders, nexp) or (nspec, norders)
                 wavelength grid for your output weights
             debug (bool): default=False

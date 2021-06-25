@@ -48,7 +48,8 @@ def read_coaddfile(ifile):
 
     # Parse the fluxing block
     spec1dfiles = []
-    objids_in = []
+    objids = []
+    sensfiles_in = []
     s, e = par.util._find_pypeit_block(lines, 'coadd1d')
     if s >= 0 and e < 0:
         msgs.error("Missing 'coadd1d end' in {0}".format(ifile))
@@ -58,29 +59,36 @@ def read_coaddfile(ifile):
         for ctr, line in enumerate(lines[s:e]):
             prs = line.split(' ')
             spec1dfiles.append(prs[0])
-            if ctr == 0 and len(prs) != 2:
+            if ctr == 0 and len(prs) < 2:
                 msgs.error('Invalid format for .coadd1d file.' + msgs.newline() +
-                           'You must have specify a spec1dfile and objid on the first line of the coadd1d block')
+                           'You must specify a spec1dfile and objid on the first line of the coadd1d block')
             if len(prs) > 1:
-                objids_in.append(prs[1])
+                objids.append(prs[1])
+            if len(prs) > 2:
+                sensfiles_in.append(prs[2])
         is_config[s-1:e+1] = False
 
     # Chck the sizes of the inputs
     nspec = len(spec1dfiles)
-    if len(objids_in) == 1:
-        objids = nspec*objids_in
-    elif len(objids_in) == nspec:
-        objids = objids_in
+    if len(sensfiles_in) == 0:
+        sensfiles = [None]*nspec
+    elif len(sensfiles_in) == 1:
+        sensfiles = nspec*sensfiles_in
+    elif len(sensfiles_in) == nspec:
+        sensfiles = sensfiles_in
     else:
         msgs.error('Invalid format for .flux file.' + msgs.newline() +
                    'You must specify a single objid on the first line of the coadd1d block,' + msgs.newline() +
                    'or specify am objid for every spec1dfile in the coadd1d block.' + msgs.newline() +
                    'Run pypeit_coadd_1dspec --help for information on the format')
+
+    if len(objids) != nspec:
+        msgs.error('Your must specify an objid on each line of the coadd1d file corresponding to each spec1d file')
     # Construct config to get spectrograph
     cfg_lines = list(lines[is_config])
 
     # Return
-    return cfg_lines, spec1dfiles, objids
+    return cfg_lines, spec1dfiles, objids, sensfiles
 
 
 def coadd1d_filelist(files, outroot, det, debug=False, show=False):
@@ -108,7 +116,7 @@ def coadd1d_filelist(files, outroot, det, debug=False, show=False):
 
     par['coadd1d']['flux_value'] = False
 
-    sensfile = None
+    sensfiles = [None]
     outfiles = []
     # Loop on entries
     for key in sync_dict:
@@ -118,7 +126,7 @@ def coadd1d_filelist(files, outroot, det, debug=False, show=False):
         coAdd1d = coadd1d.CoAdd1D.get_instance(sync_dict[key]['files'],
                                                sync_dict[key]['names'],
                                                spectrograph=spectrograph, par=par['coadd1d'],
-                                               sensfile=sensfile, debug=debug, show=show)
+                                               sensfiles=sensfiles, debug=debug, show=show)
         # Run
         coAdd1d.run()
         # Save to file
@@ -136,11 +144,10 @@ class CoAdd1DSpec(scriptbase.ScriptBase):
                                     width=width, formatter=scriptbase.SmartFormatter)
 
         parser.add_argument('coadd1d_file', type=str,
-                            help="R|File to guide coadding process. This file must have the "
-                                 "following format: \n\n"
+                            help="R|File to guide coadding process.\n\n"
+                                 "F|For Multislit this file must have the following format: \n\n"
                                  "F|[coadd1d]\n"
                                  "F|   coaddfile='output_filename.fits'\n"
-                                 "F|   sensfuncfile = 'sensfunc.fits' # Required only for Echelle\n"
                                  "\n"
                                  "F|   coadd1d read\n"
                                  "F|     spec1dfile1 objid1\n"
@@ -148,23 +155,35 @@ class CoAdd1DSpec(scriptbase.ScriptBase):
                                  "F|     spec1dfile3 objid3\n"
                                  "F|        ...    \n"
                                  "F|   coadd1d end\n"
-                                 "\n OR the coadd1d read/end block can look like \n\n"
-                                 "F|  coadd1d read\n"
-                                 "F|     spec1dfile1 objid \n"
-                                 "F|     spec1dfile2 \n"
-                                 "F|     spec1dfile3 \n"
-                                 "F|     ...    \n"
-                                 "F|  coadd1d end\n"
-                                 "\n"
-                                 "That is the coadd1d block must either be a two column list of "
-                                 "spec1dfiles and objids, or you can specify a single objid for "
-                                 "all spec1dfiles on the first line\n\n"
                                  "Where: \n"
                                  "\n"
                                  "spec1dfile: full path to a PypeIt spec1dfile\n\n"
-                                 "objid: the object identifier. To determine the objids inspect "
-                                 "the spec1d_*.txt files or run pypeit_show_1dspec spec1dfile "
-                                 "--list\n\n")
+                                 "objid1: the object identifier. To determine the objids inspect "
+                                 "the spec1d_*.txt files or run pypeit_show_1dspec spec1dfile \n\n"
+                                 "F| For Echelle you must additionally specify the sensfuncfile\n\n"
+                                 "F|[coadd1d]\n"
+                                 "F|   coaddfile='output_filename.fits'\n"
+                                 "\n"
+                                 "F|   coadd1d read\n"
+                                 "F|     spec1dfile1 objid1 sensfile\n"
+                                 "F|     spec1dfile2 objid2\n"
+                                 "F|     spec1dfile3 objid3\n"
+                                 "F|        ...    \n"
+                                 "F|   coadd1d end\n"
+                                 "\n OR the coadd1d read/end block can look like \n\n"
+                                 "F|  coadd1d read\n"
+                                 "F|     spec1dfile1 objid1 sensfile1\n"
+                                 "F|     spec1dfile2 objid2 sensfile2\n"
+                                 "F|     spec1dfile3 objid3 sensfile3\n"
+                                 "F|     ...    \n"
+                                 "F|  coadd1d end\n"
+                                 "\n"
+                                 "That is, you must specify either a sensfile for all spec1dfiles "
+                                 "on the first line, or create a three column list of spec1dfiles, objids, "
+                                 "and the corresponding sensfiles\n\n"
+                                 "That is the coadd1d block must either be a two column list of "
+                                 "spec1dfiles and objids, or you can specify a single objid for "
+                                 "all spec1dfiles on the first line\n\n")
         parser.add_argument("--debug", default=False, action="store_true", help="show debug plots?")
         parser.add_argument("--show", default=False, action="store_true",
                             help="show QA during coadding process")
@@ -178,7 +197,7 @@ class CoAdd1DSpec(scriptbase.ScriptBase):
         """ Runs the 1d coadding steps
         """
         # Load the file
-        config_lines, spec1dfiles, objids = read_coaddfile(args.coadd1d_file)
+        config_lines, spec1dfiles, objids, sensfiles = read_coaddfile(args.coadd1d_file)
         # Append path for testing
         if args.test_spec_path is not None:
             spec1dfiles = [os.path.join(args.test_spec_path, ifile) for ifile in spec1dfiles]
@@ -202,21 +221,21 @@ class CoAdd1DSpec(scriptbase.ScriptBase):
         # Write the par to disk
         print("Writing the parameters to {}".format(args.par_outfile))
         par.to_config(args.par_outfile)
-        sensfile = par['coadd1d']['sensfuncfile']
+        #sensfile = par['coadd1d']['sensfuncfile']
         coaddfile = par['coadd1d']['coaddfile']
 
         # Testing?
         if args.test_spec_path is not None:
-            if sensfile is not None:
-                sensfile = os.path.join(args.test_spec_path, sensfile)
+            if sensfiles is not None:
+                sensfiles = os.path.join(args.test_spec_path, sensfiles)
             coaddfile = os.path.join(args.test_spec_path, coaddfile)
 
-        if spectrograph.pypeline == 'Echelle' and sensfile is None:
+        if spectrograph.pypeline == 'Echelle' and sensfiles is None:
             msgs.error('You must specify the sensfuncfile in the .coadd1d file for Echelle coadds')
 
         # Instantiate
         coAdd1d = coadd1d.CoAdd1D.get_instance(spec1dfiles, objids, spectrograph=spectrograph,
-                                               par=par['coadd1d'], sensfile=sensfile,
+                                               par=par['coadd1d'], sensfiles=sensfiles,
                                                debug=args.debug, show=args.show)
         # Run
         coAdd1d.run()
