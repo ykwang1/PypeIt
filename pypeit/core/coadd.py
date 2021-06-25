@@ -2437,7 +2437,13 @@ def ech_combspec(waves, fluxes, ivars, masks, weights_sens, nbest=None, wave_met
     fluxes_scl_interord = np.zeros_like(fluxes)
     ivars_scl_interord = np.zeros_like(ivars)
     scales_interord = np.zeros_like(fluxes)
-    # First perform inter-order scaling once
+
+    # TODO This needs to be re-thought through for non-fixed format echelle. If we are co-adding data from two
+    # different setups, there needs to be another loop here over setup, so that we don't inter-order scale
+    # different echelle setups together (i.e. they need to be done individually)
+
+    # First perform inter-order scaling once. This proceeds by looping over the orders, analyzing all the exposures
+    # for a single order, and re-scaling all the exposures of the same order on to a commmon scale.
     for iord in range(norder):
         # TODO Add checking here such that orders with low S/N ratio are instead scaled using scale factors from
         # higher S/N ratio. The point is it makes no sense to take 0.0/0.0. In the low S/N regime, i.e. DLAs,
