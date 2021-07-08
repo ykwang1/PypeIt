@@ -14,6 +14,7 @@ from astropy.coordinates import AltAz, SkyCoord
 from astropy.io import fits
 import scipy.optimize as opt
 from scipy.interpolate import interp1d
+from scipy.stats import mode as scipy_mode
 import numpy as np
 
 from pypeit import msgs
@@ -59,7 +60,8 @@ class DataCube(datamodel.DataContainer):
     """
     version = '1.0.1'
 
-    datamodel = {'flux': dict(otype=np.ndarray, atype=np.floating, descr='Flux array in units of counts/s/Ang or 10^-17 erg/s/cm^2/Ang'),
+    datamodel = {'flux': dict(otype=np.ndarray, atype=np.floating, descr='Flux array in units of counts/s/Ang/arcsec^2'
+                                                                         'or 10^-17 erg/s/cm^2/Ang/arcsec^2'),
                  'variance': dict(otype=np.ndarray, atype=np.floating, descr='Variance array (matches units of flux)'),
                  'PYP_SPEC': dict(otype=str, descr='PypeIt: Spectrograph name'),
                  'fluxed': dict(otype=bool, descr='Boolean indicating if the datacube is fluxed.')}
@@ -608,6 +610,9 @@ def coadd_cube(files, parset, overwrite=False):
         spec2DObj = spec2dobj.Spec2DObj.from_file(fil, det)
         detector = spec2DObj.detector
 
+        # Accumulate the total exposure time
+        exptime = fits.open(fil)[0].header['EXPTIME']
+
         # Setup for PypeIt imports
         msgs.reset(verbosity=2)
 
@@ -688,6 +693,8 @@ def coadd_cube(files, parset, overwrite=False):
         # extinction_correction requires the wavelength is sorted
         wvsrt = np.argsort(wave_ext)
         ext_corr = extinction_correction(wave_ext[wvsrt] * units.AA, airmass, extinct)
+        # Also convert the flux_sav to counts/s
+        ext_corr /= exptime
         # Correct for extinction
         flux_sav = flux_ext[wvsrt] * ext_corr
         ivar_sav = ivar_ext[wvsrt] / ext_corr ** 2
@@ -695,8 +702,7 @@ def coadd_cube(files, parset, overwrite=False):
         resrt = np.argsort(wvsrt)
 
         # Calculate the weights relative to the zeroth cube
-        if ff != 0:
-            weights[ff] = np.median(flux_sav[resrt]*np.sqrt(ivar_sav[resrt]))**2
+        weights[ff] = np.median(flux_sav[resrt]*np.sqrt(ivar_sav[resrt]))**2
 
         # Store the information
         numpix = raimg[onslit_gpm].size
@@ -706,7 +712,7 @@ def coadd_cube(files, parset, overwrite=False):
         all_sci = np.append(all_sci, flux_sav[resrt].copy())
         all_ivar = np.append(all_ivar, ivar_sav[resrt].copy())
         all_idx = np.append(all_idx, ff*np.ones(numpix))
-        all_wghts = np.append(all_wghts, weights[ff]*np.ones(numpix))
+        all_wghts = np.append(all_wghts, weights[ff]*np.ones(numpix)/weights[0])
 
     # Grab cos(dec) for convenience
     cosdec = np.cos(np.mean(all_dec) * np.pi / 180.0)
@@ -825,15 +831,17 @@ def coadd_cube(files, parset, overwrite=False):
 
     # Find the NGP coordinates for all input pixels
     msgs.info("Generating data cube")
+    # Convert the cube to counts/s/Ang/arcsec2
+    scl_units = dwv * 3600.0 * 3600.0 * dspat * dspat
     bins = (xbins, ybins, spec_bins)
-    datacube, edges = np.histogramdd(pix_coord, bins=bins, weights=all_sci*all_wghts)
+    datacube, edges = np.histogramdd(pix_coord, bins=bins, weights=all_sci * all_wghts/scl_units)
     norm, edges = np.histogramdd(pix_coord, bins=bins, weights=all_wghts)
     norm_cube = (norm > 0) / (norm + (norm == 0))
     datacube *= norm_cube
     # Create the variance cube, including weights
     msgs.info("Generating variance cube")
     all_var = (all_ivar > 0) / (all_ivar + (all_ivar == 0))
-    var_cube, edges = np.histogramdd(pix_coord, bins=bins, weights=all_var * all_wghts**2)
+    var_cube, edges = np.histogramdd(pix_coord, bins=bins, weights=all_var * (all_wghts/scl_units)**2)
     var_cube *= norm_cube**2
 
     # Save the datacube
