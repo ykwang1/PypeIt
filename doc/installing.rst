@@ -199,10 +199,6 @@ Some users have run into the following complications when installing the
  - At the moment, an implicit dependency on QT bindings remains (either PyQT5 or
    PySide2) because of our dependence on ``linetools``.
 
- - Note that ``shapely`` is provided as an optional dependency, but is only
-   currently used by one method that calculates the spaxel area for KCWI
-   output datacubes.
-
 ----
 
 Compiled Code and Plug-ins
