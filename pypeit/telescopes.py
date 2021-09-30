@@ -92,7 +92,7 @@ class GeminiNTelescopePar(TelescopePar):
     def __init__(self):
         super(GeminiNTelescopePar, self).__init__(name='GEMINI-N',
                                                longitude=155.47833,
-                                   ()            latitude=19.82833,
+                                               latitude=19.82833,
                                                elevation=4160.0,
                                                diameter=8.1)
 class GeminiSTelescopePar(TelescopePar):
