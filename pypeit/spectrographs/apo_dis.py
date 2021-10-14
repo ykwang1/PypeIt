@@ -23,7 +23,7 @@ class APODISSpectrograph(spectrograph.Spectrograph):
     """
     Child to handle DIS specific code for each camera
     """
-    ndet = 2
+    ndet = 1
     telescope = telescopes.SOARTelescopePar()
 
     def configuration_keys(self):
@@ -63,7 +63,7 @@ class APODISSpectrograph(spectrograph.Spectrograph):
         self.meta['airmass'] = dict(ext=0, card='AIRMASS')
         # Extras for config and frametyping
         self.meta['dispname'] = dict(ext=0, card='GRATING')
-        self.meta['dispangle'] = dict(ext=0, card='GRT_ANG', rtol=1e-3)
+        self.meta['dispangle'] = dict(ext=0, card='BLAZEANG', rtol=1e-3)
         self.meta['idname'] = dict(ext=0, card='IMAGETYP')
         # used for arc and continuum lamps
 
@@ -149,7 +149,7 @@ class APODISRedSpectrograph(APODISSpectrograph):
             Object with the detector metadata.
         """
         header = hdu[0].header
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         # Binning
         binning = self.get_meta_value(self.get_headarr(hdu), 'binning')  # Could this be detector dependent??
 
@@ -157,7 +157,7 @@ class APODISRedSpectrograph(APODISSpectrograph):
         detector_dict = dict(
             binning=binning,
             det=1,
-            dataext=1,
+            dataext=0,
             specaxis=1,
             specflip=False,
             spatflip=False,
@@ -169,6 +169,12 @@ class APODISRedSpectrograph(APODISSpectrograph):
             numamplifiers=1,
             gain=np.atleast_1d(header['GAIN']),
             ronoise=np.atleast_1d(header['RDNOISE']),
+            datasec=np.atleast_1d('[1:1028,1:2048]'),
+            oscansec=np.atleast_1d('[1:1028,2051:2096]')
+            # gain=np.atleast_1d(3.0),
+            # ronoise=np.atleast_1d(12.5),
+            # datasec=np.atleast_1d(header['DATASEC']),
+            # oscansec=np.atleast_1d(header['BIASSEC']),
         )
 
         # Only tested for 2x2
@@ -209,7 +215,7 @@ class APODISRedSpectrograph(APODISSpectrograph):
         # Change the wavelength calibration method
         par['calibrations']['wavelengths']['method'] = 'holy-grail'
         # par['calibrations']['wavelengths']['method'] = 'reidentify'
-        par['calibrations']['wavelengths']['lamps'] = ['He', 'NeI', 'ArI']
+        par['calibrations']['wavelengths']['lamps'] = ['HeI', 'NeI', 'ArI']
         # Wavelengths
         # 1D wavelength solution
         par['calibrations']['wavelengths']['rms_threshold'] = 0.5
