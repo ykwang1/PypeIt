@@ -24,7 +24,7 @@ class APODISSpectrograph(spectrograph.Spectrograph):
     Child to handle DIS specific code for each camera
     """
     ndet = 1
-    telescope = telescopes.SOARTelescopePar()
+    telescope = telescopes.APOTelescopePar()
 
     def configuration_keys(self):
         """
