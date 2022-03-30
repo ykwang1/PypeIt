@@ -173,7 +173,7 @@ class LDTTelescopePar(TelescopePar):
 class APOTelescopePar(TelescopePar):
     def __init__(self):
         super(APOTelescopePar, self).__init__(name='APO',
-                                        longitude='105.8203',
-                                        latitude='32.7803',
-                                        elevation='2788',
-                                        diameter='3.5')
+                                        longitude=105.8203,
+                                        latitude=32.7803,
+                                        elevation=2788,
+                                        diameter=3.5)
